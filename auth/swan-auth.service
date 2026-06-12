@@ -1,0 +1,16 @@
+[Unit]
+Description=Swan Clinic dashboard auth/RBAC gateway
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/swan-auth
+Environment=SWAN_WEB_DIR=__WEBDIR__
+Environment=SWAN_USERS=/etc/swan/users.json
+Environment=SWAN_SECRET=/etc/swan/secret
+ExecStart=/opt/swan-auth/venv/bin/uvicorn auth_app:app --host 127.0.0.1 --port 8200 --workers 2
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

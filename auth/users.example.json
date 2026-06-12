@@ -1,0 +1,38 @@
+{
+  "trung": {
+    "role": "ceo",
+    "pw": "<chạy make_users.py để sinh hash mật khẩu>"
+  },
+  "thanh": {
+    "role": "ceo",
+    "pw": "<chạy make_users.py để sinh hash mật khẩu>"
+  },
+  "thuan": {
+    "role": "ops",
+    "pw": "<chạy make_users.py để sinh hash mật khẩu>"
+  },
+  "quyen": {
+    "role": "ops",
+    "pw": "<chạy make_users.py để sinh hash mật khẩu>"
+  },
+  "mily": {
+    "role": "ops",
+    "pw": "<chạy make_users.py để sinh hash mật khẩu>"
+  },
+  "vuongngan": {
+    "role": "noi_ads",
+    "pw": "<chạy make_users.py để sinh hash mật khẩu>"
+  },
+  "duy": {
+    "role": "ngoai",
+    "pw": "<chạy make_users.py để sinh hash mật khẩu>"
+  },
+  "quynh": {
+    "role": "marketing",
+    "pw": "<chạy make_users.py để sinh hash mật khẩu>"
+  },
+  "maithi": {
+    "role": "marketing",
+    "pw": "<chạy make_users.py để sinh hash mật khẩu>"
+  }
+}

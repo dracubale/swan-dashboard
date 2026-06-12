@@ -1,0 +1,15 @@
+# Dữ liệu thật & bí mật — KHÔNG đưa lên GitHub
+data.json
+bundle.json
+auth/users.json
+secret
+.env
+*.xlsx
+*.csv
+
+# Build/cache
+__pycache__/
+*.pyc
+*.zip
+.DS_Store
+node_modules/

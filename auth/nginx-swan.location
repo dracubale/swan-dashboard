@@ -1,0 +1,11 @@
+# === Thay TOÀN BỘ block "location /swan/ { ... }" cũ bằng block này ===
+# (xóa luôn 2 dòng auth_basic của GĐ0 — login giờ do app xử lý)
+location = /swan { return 301 /swan/; }
+location /swan/ {
+    proxy_pass http://127.0.0.1:8200/;     # dấu "/" cuối để cắt tiền tố /swan/
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 30s;
+}
