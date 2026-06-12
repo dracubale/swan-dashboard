@@ -22,6 +22,7 @@ def _load_fav(name):
 FAV64  = _load_fav("favicon-64.png")
 FAV180 = _load_fav("favicon-180.png")
 FAV_SVG = _load_fav("favicon.svg")     # SVG tự đổi màu theo nền (đen ở nền sáng, trắng ở nền tối)
+SWAN_LOGO = _load_fav("swan-logo.png") # logo Swan Clinic cho góc thương hiệu sidebar
 def _fav_tags():
     t = ""
     if FAV_SVG: t += '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,%s">' % FAV_SVG
@@ -206,7 +207,8 @@ def render_dashboard(user, role):
         html = html.replace("let DATA =", "let DATA = {} || ", 1)
     cfg = {"pages": pages, "user": user, "role": role,
            "label": ROLE_LABEL.get(role, role), "landing": landing,
-           "div": DATA_SCOPE.get(role, {}).get("division")}
+           "div": DATA_SCOPE.get(role, {}).get("division"),
+           "logo": ("data:image/png;base64," + SWAN_LOGO) if SWAN_LOGO else ""}
     cfg_json = json.dumps(cfg, ensure_ascii=False).replace("</", "<\\/")
     # favicon Hydrasignal (SVG tự đổi màu + PNG fallback)
     fav = FAV_TAGS
@@ -234,6 +236,12 @@ def render_dashboard(user, role):
       if(!allow.has(s.id)){ s.classList.remove('active'); s.innerHTML=''; }
     });
     if(S.div){ var st=document.createElement('style'); st.textContent='#divbar{display:none!important}'; document.head.appendChild(st); }
+    var brand=document.querySelector('.brand');
+    if(brand && S.logo && !brand.dataset.swan){
+      brand.dataset.swan='1';
+      brand.innerHTML='<img src="'+S.logo+'" alt="Swan Clinic" style="height:30px;width:auto;display:block;margin-bottom:6px">'+
+                      '<small>Bảng điều khiển CEO</small>';
+    }
     var tr=document.querySelector('.topbar-right');
     if(tr && !document.getElementById('swan-userchip')){
       var d=document.createElement('div'); d.id='swan-userchip';
