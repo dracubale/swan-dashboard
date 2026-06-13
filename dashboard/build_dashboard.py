@@ -161,6 +161,11 @@ tr:last-child td{border-bottom:none}
 .combo text.ax{font:600 10px Inter;fill:var(--muted)}
 .kpi .per{font-size:11px;font-weight:700;color:var(--muted);font-family:'Inter';margin-left:6px;letter-spacing:.04em}
 .kpi.accent .per{color:#8FBFB1}
+.chg{font-size:10px;font-weight:800;margin-left:5px;font-family:'Inter';letter-spacing:.01em;white-space:nowrap}
+.chg-up{color:#1A9956}
+.chg-down{color:#D64545}
+.chg-neu{color:var(--muted)}
+.kpi.accent .chg-up{color:#7FE3B0}.kpi.accent .chg-down{color:#F2A6A6}.kpi.accent .chg-neu{color:#8FBFB1}
 .kpis.six{grid-template-columns:repeat(6,1fr);gap:12px}
 .kpis.six .kpi{padding:15px}
 .kpis.six .val{font-size:26px}
@@ -596,6 +601,30 @@ const CARDS=[
  {k:'adds',vi:'Chi phí ad / DS',en:'Chi ad ÷ doanh thu',g:-1},
 ];
 
+// ----- % thay đổi so kỳ liền trước (xanh tốt / đỏ xấu theo hướng g) -----
+const SUMKEYS=new Set(['rev','spend','paying']);  // chỉ số dạng tổng -> chuẩn hoá theo ngày khi so kỳ
+function _chgChip(cur,prev,g){
+  if(prev===0||!isFinite(cur)||!isFinite(prev))return '';
+  const p=(cur-prev)/Math.abs(prev)*100; if(!isFinite(p))return '';
+  if(Math.abs(p)<0.5)return '<span class="chg chg-neu">→0%</span>';
+  const up=p>0, arrow=up?'▲':'▼';
+  const good = g>0?up : g<0?!up : null;          // g=0: trung tính
+  const cls = good===null?'chg-neu':(good?'chg-up':'chg-down');
+  return `<span class="chg ${cls}">${arrow}${Math.abs(p).toFixed(0)}%</span>`;
+}
+function chg(curA,prevA,key,g){
+  if(!curA.length||!prevA.length)return '<span class="chg chg-neu">—</span>';
+  let cur=metric(curA,key),prev=metric(prevA,key);
+  if(SUMKEYS.has(key)){cur/=curA.length;prev/=prevA.length;}
+  return _chgChip(cur,prev,g)||'<span class="chg chg-neu">—</span>';
+}
+function chgF(curA,prevA,fn,g,isSum){
+  if(!curA.length||!prevA.length)return '<span class="chg chg-neu">—</span>';
+  let cur=fn(curA),prev=fn(prevA);
+  if(isSum){cur/=curA.length;prev/=prevA.length;}
+  return _chgChip(cur,prev,g)||'<span class="chg chg-neu">—</span>';
+}
+
 const fullDate=d=>{const[y,m,dd]=d.split('-');return dd+'/'+m+'/'+y;};
 
 // ---- interactive chart (global so range buttons can re-render) ----
@@ -805,6 +834,11 @@ function overview(){
   const dd=dlabel(YDAY.date);
   const AS=activeSeries();
   const MTD=winSlice('mtd'), L7=winSlice('d7'), L30=winSlice('d30'), Y=winSlice('y');
+  const COMP=AS.filter(s=>s.date<TODAY_DATE);                 // các ngày đã chốt
+  const Yp = COMP.length>=2?[COMP[COMP.length-2]]:[];          // hôm trước hôm qua
+  const L7p = COMP.slice(-14,-7);                              // 7 ngày liền trước
+  const L3p = COMP.slice(-6,-3);                               // 3 ngày liền trước
+  const L30p = COMP.slice(-60,-30);                            // 30 ngày liền trước
   const MONTH=AS.filter(s=>s.date.slice(0,7)===TODAY_DATE.slice(0,7));  // tháng đến hiện tại (gồm hôm nay)
   const _td=winSlice('today'); const TODAYV=_td.length?_td:null;
   const spk=AS.filter(s=>s.date<TODAY_DATE).slice(-30);
@@ -817,19 +851,19 @@ function overview(){
       ${spark(spk.map(d=>metric([d],c.k)),'kspark',c.g,spkLbl)}
       <div class="sub3">
         ${TODAYV?`<span>Hôm nay: <b>${f(metric(TODAYV,c.k))}</b></span>`:''}
-        <span>Hôm qua: <b>${f(metric(Y,c.k))}</b></span>
-        <span>7 ngày: <b>${f(metric(L7,c.k))}</b></span>
-        <span>30 ngày: <b>${f(metric(L30,c.k))}</b></span>
+        <span>Hôm qua: <b>${f(metric(Y,c.k))}</b>${chg(Y,Yp,c.k,c.g)}</span>
+        <span>7 ngày: <b>${f(metric(L7,c.k))}</b>${chg(L7,L7p,c.k,c.g)}</span>
+        <span>30 ngày: <b>${f(metric(L30,c.k))}</b>${chg(L30,L30p,c.k,c.g)}</span>
       </div></div>`;}).join('');
   const dmin=S[0].date, dmax=S[S.length-1].date;
   const bm=MONTH, bt=TODAYV, by=winSlice('y'),b3=winSlice('d3'),b7=winSlice('d7'),b30=winSlice('d30');
   const mMsg=a=>agg(a,s=>s.meta_msg+s.tk_msg);
   const mConv=a=>{const m=mMsg(a);return m?(agg(a,s=>s.paying+s.coc)/m*100):0;};
   const mMed=a=>median(poolVals(a)), mMean=a=>mean(poolVals(a));
-  const bcard=(vi,en,fn,fmt,g)=>`<div class="kpi"><div class="lab">${vi}<span class="en">${en}</span></div>
+  const bcard=(vi,en,fn,fmt,g,isSum)=>`<div class="kpi"><div class="lab">${vi}<span class="en">${en}</span></div>
     <div class="val">${fmt(fn(bm))}<span class="per">/tháng</span></div>
     ${spark(spk.map(d=>fn([d])),'kspark',g,spkLbl)}
-    <div class="sub3">${bt?`<span>Hôm nay: <b>${fmt(fn(bt))}</b></span>`:''}<span>Hôm qua: <b>${fmt(fn(by))}</b></span><span>3 ngày: <b>${fmt(fn(b3))}</b></span><span>7 ngày: <b>${fmt(fn(b7))}</b></span><span>30 ngày: <b>${fmt(fn(b30))}</b></span></div></div>`;
+    <div class="sub3">${bt?`<span>Hôm nay: <b>${fmt(fn(bt))}</b></span>`:''}<span>Hôm qua: <b>${fmt(fn(by))}</b>${chgF(by,Yp,fn,g,isSum)}</span><span>3 ngày: <b>${fmt(fn(b3))}</b>${chgF(b3,L3p,fn,g,isSum)}</span><span>7 ngày: <b>${fmt(fn(b7))}</b>${chgF(b7,L7p,fn,g,isSum)}</span><span>30 ngày: <b>${fmt(fn(b30))}</b>${chgF(b30,L30p,fn,g,isSum)}</span></div></div>`;
   return `
   ${insightCards('overview')}
   <div class="card" style="padding:20px 22px">
@@ -889,10 +923,10 @@ function overview(){
       <span style="color:var(--jade)">▲ ROAS mỗi ngày</span></div>
   </div>
   <div class="kpis kpi-sm" style="margin-top:18px">
-    ${bcard('Bill trung vị','Giá trị giữa của bill khách',mMed,tr,1)}
-    ${bcard('Bill trung bình','Doanh thu ÷ khách có DT',mMean,tr,1)}
-    ${bcard('Tin nhắn','Meta + TikTok',mMsg,v=>Math.round(v).toLocaleString('vi-VN'),1)}
-    ${bcard('Tỉ lệ chuyển đổi','Msg → khách (DT+cọc)',mConv,v=>v.toFixed(1)+'%',1)}
+    ${bcard('Bill trung vị','Giá trị giữa của bill khách',mMed,tr,1,false)}
+    ${bcard('Bill trung bình','Doanh thu ÷ khách có DT',mMean,tr,1,false)}
+    ${bcard('Tin nhắn','Meta + TikTok',mMsg,v=>Math.round(v).toLocaleString('vi-VN'),1,true)}
+    ${bcard('Tỉ lệ chuyển đổi','Msg → khách (DT+cọc)',mConv,v=>v.toFixed(1)+'%',1,false)}
   </div>
   ${DIVFILTER==='all'?newtkCard():''}
   <div class="card"><div class="src">
