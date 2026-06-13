@@ -239,7 +239,7 @@ def render_dashboard(user, role):
     var brand=document.querySelector('.brand');
     if(brand && S.logo && !brand.dataset.swan){
       brand.dataset.swan='1';
-      brand.innerHTML='<img src="'+S.logo+'" alt="Swan Clinic" style="height:30px;width:auto;display:block;margin-bottom:6px">'+
+      brand.innerHTML='<img src="'+S.logo+'" alt="Swan Clinic" style="height:40px;width:auto;display:block;margin:0 0 8px 0">'+
                       '<small>Bảng điều khiển CEO</small>';
     }
     var tr=document.querySelector('.topbar-right');
