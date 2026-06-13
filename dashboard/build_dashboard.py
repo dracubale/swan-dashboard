@@ -833,7 +833,7 @@ function newtkCard(){
 function overview(){
   const dd=dlabel(YDAY.date);
   const AS=activeSeries();
-  const MTD=winSlice('mtd'), L7=winSlice('d7'), L30=winSlice('d30'), Y=winSlice('y');
+  const MTD=winSlice('mtd'), L7=winSlice('d7'), L30=winSlice('d30'), Y=winSlice('y'), L3=winSlice('d3');
   const COMP=AS.filter(s=>s.date<TODAY_DATE);                 // các ngày đã chốt
   const Yp = COMP.length>=2?[COMP[COMP.length-2]]:[];          // hôm trước hôm qua
   const L7p = COMP.slice(-14,-7);                              // 7 ngày liền trước
@@ -850,8 +850,9 @@ function overview(){
       <div class="val">${f(metric(MONTH,c.k))}${suf}</div>
       ${spark(spk.map(d=>metric([d],c.k)),'kspark',c.g,spkLbl)}
       <div class="sub3">
-        ${TODAYV?`<span>Hôm nay: <b>${f(metric(TODAYV,c.k))}</b></span>`:''}
+        <span>Hôm nay: <b>${TODAYV?f(metric(TODAYV,c.k)):'—'}</b></span>
         <span>Hôm qua: <b>${f(metric(Y,c.k))}</b>${chg(Y,Yp,c.k,c.g)}</span>
+        <span>3 ngày: <b>${f(metric(L3,c.k))}</b>${chg(L3,L3p,c.k,c.g)}</span>
         <span>7 ngày: <b>${f(metric(L7,c.k))}</b>${chg(L7,L7p,c.k,c.g)}</span>
         <span>30 ngày: <b>${f(metric(L30,c.k))}</b>${chg(L30,L30p,c.k,c.g)}</span>
       </div></div>`;}).join('');
@@ -863,7 +864,7 @@ function overview(){
   const bcard=(vi,en,fn,fmt,g,isSum)=>`<div class="kpi"><div class="lab">${vi}<span class="en">${en}</span></div>
     <div class="val">${fmt(fn(bm))}<span class="per">/tháng</span></div>
     ${spark(spk.map(d=>fn([d])),'kspark',g,spkLbl)}
-    <div class="sub3">${bt?`<span>Hôm nay: <b>${fmt(fn(bt))}</b></span>`:''}<span>Hôm qua: <b>${fmt(fn(by))}</b>${chgF(by,Yp,fn,g,isSum)}</span><span>3 ngày: <b>${fmt(fn(b3))}</b>${chgF(b3,L3p,fn,g,isSum)}</span><span>7 ngày: <b>${fmt(fn(b7))}</b>${chgF(b7,L7p,fn,g,isSum)}</span><span>30 ngày: <b>${fmt(fn(b30))}</b>${chgF(b30,L30p,fn,g,isSum)}</span></div></div>`;
+    <div class="sub3"><span>Hôm nay: <b>${bt?fmt(fn(bt)):'—'}</b></span><span>Hôm qua: <b>${fmt(fn(by))}</b>${chgF(by,Yp,fn,g,isSum)}</span><span>3 ngày: <b>${fmt(fn(b3))}</b>${chgF(b3,L3p,fn,g,isSum)}</span><span>7 ngày: <b>${fmt(fn(b7))}</b>${chgF(b7,L7p,fn,g,isSum)}</span><span>30 ngày: <b>${fmt(fn(b30))}</b>${chgF(b30,L30p,fn,g,isSum)}</span></div></div>`;
   return `
   ${insightCards('overview')}
   <div class="card" style="padding:20px 22px">
