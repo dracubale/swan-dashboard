@@ -133,7 +133,10 @@ def tiktok():
     tf=pd.read_excel(TKFILE,sheet_name='Sheet1').rename(columns=lambda c:str(c).strip())
     tf=tf[~tf['By Day'].astype(str).str.contains('Total',na=False)]; tf=tf[tf['Ad name'].notna()]
     tf['Cost']=pd.to_numeric(tf['Cost'],errors='coerce').fillna(0)
-    tf['msg']=pd.to_numeric(tf['Conversations (TikTok direct message)'],errors='coerce').fillna(0)
+    # AUDIT FIX (16/6): headline tin nhan TikTok dung 'Leads (DM)' de KHOP 'New messaging contacts' cua Meta
+    # (truoc day lay 'Conversations (DM)' = hoi thoai -> cong nham 2 metric khac loai). Fallback neu cot thieu.
+    _tkmsgcol='Leads (TikTok direct message)' if 'Leads (TikTok direct message)' in tf.columns else 'Conversations (TikTok direct message)'
+    tf['msg']=pd.to_numeric(tf[_tkmsgcol],errors='coerce').fillna(0)
     tf['g']=tf['Ad name'].apply(classify); tf['d']=tf['By Day'].astype(str); tf=tf[tf['d']<=REVMAX]
     daily={}; msv={}; spv={}; spd_div={}; msd_div={}
     for d,sub in tf.groupby('d'): daily[d]={'spend':float(sub['Cost'].sum()),'msg':float(sub['msg'].sum())}
@@ -503,11 +506,20 @@ def dayrec_div(d,division):
         roas=round(revenue/(msp+tsp),1) if (msp+tsp) else 0)
 series_div={dv:[dayrec_div(d,dv) for d in days] for dv in ['Nội khoa','Ngoại khoa']}
 
+# AUDIT (16/6): canh bao thieu file / file cu -> in ra log + nhet vao dq.warnings cho dashboard
+import sys as _sys
+_warn=[]
+if not META_FILES: _warn.append('Thieu file Meta (NoiKhoa*/NgoaiKhoa*.xlsx) -> Meta spend & tin nhan = 0')
+if TKFILE is None: _warn.append('Thieu file TikTok (Tiktok_Ads*.xlsx) -> TikTok spend & tin nhan = 0')
+if m_latest and m_latest<REVMAX: _warn.append(f'File Meta cu: ngay ad moi nhat {m_latest} < doanh thu {REVMAX}')
+if t_latest and t_latest<REVMAX: _warn.append(f'File TikTok cu: ngay ad moi nhat {t_latest} < doanh thu {REVMAX}')
+for _w in _warn: print('[CANH BAO]', _w, file=_sys.stderr)
+if not _warn: print('[OK] Du file Meta & TikTok, khong file cu.', file=_sys.stderr)
 dq=dict(bills_no_e1=int((B.n_e1==0).sum()),bills_multi_e1=int((B.n_e1>1).sum()),mixed_bills=int(B.mixed.sum()),
     rev_unmapped_pct=round(float(df[(df.rev>0)&(df.g=='UNMAPPED')]['rev'].sum()/max(1e-9,df[df.rev>0]['rev'].sum())*100),1),
     meta_unmapped_pct=round(m_unmap,1),tk_unmapped_pct=round(t_unmap,1),
     latest_revenue=days[-1],latest_meta=m_latest,latest_tiktok=t_latest,today=TODAY,
-    generated_at=pd.Timestamp.now().strftime('%Y-%m-%d %H:%M'))
+    generated_at=pd.Timestamp.now().strftime('%Y-%m-%d %H:%M'),warnings=_warn)
 
 allpv=[v for s in series for v in s['bill_values']]
 dep_total=B[B.is_deposit]['gross'].sum()*VND
