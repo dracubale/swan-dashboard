@@ -4,7 +4,8 @@ def sa(s):
     s=unicodedata.normalize('NFKD',str(s));return ''.join(c for c in s if not unicodedata.combining(c)).lower()
 GROUPS={"Tiêm":["tiem","filler","botox","meso","injection"],"Máy":["danh may","may","laser","hifu","thermage","ulthe","ipl","rf"],
 "Căng chỉ":["cang chi","thread","lifting"],"Mũi":["mui","nose","rhino"],"Ngực":["nguc","breast","v1"],
-"Mí/Mắt":["mi","mat","eye","blepharo"],"Mông":["mong","buttock"],"Hút mỡ":["hut mo","lipo"]}
+"Mí/Mắt":["mi","mat","eye","blepharo"],"Mông":["mong","buttock"],"Hút mỡ":["hut mo","lipo"],
+"Phẫu mông":["phau mong"]}
 # Tag dịch vụ ở đầu tên ad theo quy ước (vd "(tiêm) abc", "(v1) ..."=ngực). Ưu tiên tag trong ( ) hoặc [ ].
 def classify(name):
     if name is None or str(name).strip()=='' or str(name)=='nan': return 'UNMAPPED'
@@ -15,8 +16,8 @@ def classify(name):
             if kw in base and len(kw)>best[0]: best=(len(kw),g)
     return best[1]
 DIVMAP={'Tiêm':'Nội khoa','Máy':'Nội khoa','Căng chỉ':'Nội khoa','Mông':'Nội khoa',
-        'Mũi':'Ngoại khoa','Ngực':'Ngoại khoa','Mí/Mắt':'Ngoại khoa','Hút mỡ':'Ngoại khoa'}
-DIV_GROUPS={'Nội khoa':['Tiêm','Máy','Căng chỉ','Mông'],'Ngoại khoa':['Mũi','Ngực','Mí/Mắt','Hút mỡ']}
+        'Mũi':'Ngoại khoa','Ngực':'Ngoại khoa','Mí/Mắt':'Ngoại khoa','Hút mỡ':'Ngoại khoa','Phẫu mông':'Ngoại khoa'}
+DIV_GROUPS={'Nội khoa':['Tiêm','Máy','Căng chỉ','Mông'],'Ngoại khoa':['Mũi','Ngực','Mí/Mắt','Hút mỡ','Phẫu mông']}
 def _divof(g): return DIVMAP.get(g)
 VND=1000
 # ===== DATA POOL: thư mục cấu hình qua SWAN_INPUT_DIR (mặc định = thư mục upload) =====
@@ -378,6 +379,20 @@ for s in services:
     s['ad_msg']=int(round(msg_svc.get(s['group'],0)))
 
 
+# ===== Doanh thu tách khoa ở mức DÒNG (1 bill nhiều DV -> mỗi dòng về đúng khoa của nó) =====
+# Sửa lỗi: trước đây cả bill bị gán 1 khoa (do sale chứa 'phẫu' hoặc dịch vụ chính khác khoa),
+# làm phình DT khoa này & thiếu DT khoa kia. Giờ chia DT theo từng dòng dịch vụ.
+from collections import defaultdict as _dd
+_revbillnos=set(revB['bill'])
+_rl=df[(df.billno.isin(_revbillnos))&(df.rev>0)&(df.g!='UNMAPPED')].copy()
+_rl['line_div']=_rl['g'].map(DIVMAP)
+_rl=_rl[_rl['line_div'].notna()]
+bill2div=_dd(dict)                                    # bill -> {khoa: rev(nghin)}
+for (bno,dv),v in _rl.groupby(['billno','line_div'])['rev'].sum().items():
+    bill2div[bno][dv]=float(v)
+def _div_billvals(dname):                             # list phan DT thuoc khoa nay theo tung bill (nghin)
+    return [vals[dname] for vals in bill2div.values() if dname in vals]
+
 # ============ DIVISION split: Nội khoa vs Ngoại khoa ============
 import calendar
 TARGET_MONTH={'Nội khoa':12_000_000_000,'Ngoại khoa':3_000_000_000}
@@ -388,19 +403,18 @@ _y,_m=int(TODAY[:4]),int(TODAY[5:7]); month_days=calendar.monthrange(_y,_m)[1]
 days_elapsed=len([d for d in days if d[:7]==TODAY[:7]]) or len(days)
 divisions=[]
 for dname in ['Nội khoa','Ngoại khoa']:
-    sub=revB[revB['division']==dname]
-    pv=sorted([x*VND for x in sub['gross']]); rev=float(sub['gross'].sum()*VND)
+    parts=_div_billvals(dname)                        # moi phan = DT khoa nay trong 1 bill (line-level)
+    pv=sorted([p*VND for p in parts]); rev=float(sum(parts)*VND)
     depdiv=0.0
     for _,r in B[B.is_deposit].iterrows():
         ds={DIVMAP.get(x) for x in (r['sgroups'] or [])}; ds={x for x in ds if x}
-        if r['is_phau']: ds={'Ngoại khoa'}
         if not ds: continue
         if dname in ds: depdiv+=r['gross']*VND/len(ds)
     coc_done_n=int(((B['division']==dname)&(B['coc_done'])).sum())
     svc=sorted([{'group':g,'revenue':int(allrbs.get(g,0))} for g in DIV_GROUPS[dname] if allrbs.get(g,0)>0],key=lambda x:-x['revenue'])
     tgt=TARGET_MONTH[dname]; proj=rev/days_elapsed*month_days if days_elapsed else 0; ad=DIV_AD[dname]
     divisions.append(dict(name=dname,groups=DIV_GROUPS[dname],revenue=int(round(rev)),deposit=int(round(depdiv)),
-        customers=int(len(sub)),aov=int(round(st.mean(pv))) if pv else 0,median=int(round(st.median(pv))) if pv else 0,
+        customers=int(len(parts)),aov=int(round(st.mean(pv))) if pv else 0,median=int(round(st.median(pv))) if pv else 0,
         p90=int(round(pctl(pv,90))) if pv else 0,bill_values=[int(round(x)) for x in pv],services=svc,coc_done=coc_done_n,
         ad_spend=int(round(ad)),ad_msg=int(round(DIV_MSG[dname])),roas=round(rev/ad,1) if ad else None,
         target_month=int(tgt),projected_month=int(round(proj)),
@@ -464,24 +478,27 @@ crosssell_div={d:crosssell_for(revB[revB['division']==d]) for d in ['Nội khoa'
 
 # per-division daily series (cho overview lọc theo division)
 def dayrec_div(d,division):
-    bb=B[(B.date==d)&(B.division==division)]
-    rev_bills=bb[bb.is_rev]; dep_bills=bb[bb.is_deposit]
-    revenue=rev_bills['gross'].sum()*VND; deposit=dep_bills['gross'].sum()*VND
-    pv=[round(x*VND) for x in rev_bills['gross'].tolist()]; xs=rev_bills[rev_bills['distinct']>=2]
-    revbillnos=set(rev_bills['bill']); rsub=df[(df.date==d)&(df.billno.isin(revbillnos))&(df.rev>0)&(df.g!='UNMAPPED')]
-    rbs={g:round(v*VND) for g,v in rsub.groupby('g')['rev'].sum().items() if v and DIVMAP.get(g)==division}
-    ms={};
+    _ld=_rl[(_rl.date==d)&(_rl.line_div==division)]              # dong DT thuoc khoa nay trong ngay
+    perbill=_ld.groupby('billno')['rev'].sum()                  # phan DT khoa nay theo tung bill
+    dbills=set(perbill.index)
+    bb=B[(B.date==d)&(B.bill.isin(dbills))]
+    revenue=float(perbill.sum())*VND
+    pv=[round(float(x)*VND) for x in perbill.tolist()]
+    rbs={g:round(v*VND) for g,v in _ld.groupby('g')['rev'].sum().items() if v}
+    _ng=_ld.groupby('billno')['g'].nunique(); xs_bills=set(_ng[_ng>=2].index)
+    ms={}
     for src in (mms.get(d,{}),tms.get(d,{})):
         for g,v in src.items():
             if DIVMAP.get(g)==division: ms[g]=ms.get(g,0)+v
     mmsg=msg_div_day(d,division)
-    msp=spend_div_day(d,division); tsp=0   # spend_div_day đã gộp cả Meta+TikTok
-    return dict(date=d,gross=(revenue+deposit),operating=revenue,revenue=revenue,deposit=deposit,cash_in=revenue+deposit,
-        customers=int(bb.has_cust.sum()),paying=int(bb.is_rev.sum()),coc=int(bb.is_deposit.sum()),zero=int(bb.is_zero.sum()),
+    msp=spend_div_day(d,division); tsp=0   # spend_div_day da gop ca Meta+TikTok
+    npay=len(dbills)
+    return dict(date=d,gross=revenue,operating=revenue,revenue=revenue,deposit=0,cash_in=revenue,
+        customers=npay,paying=npay,coc=0,zero=0,
         new=int(((bb.is_rev)&(bb.ctype=='NEW')).sum()),tk=int(((bb.is_rev)&(bb.ctype=='TK')).sum()),
         median_bill=float(st.median(pv)) if pv else 0.0,mean_bill=float(st.mean(pv)) if pv else 0.0,
         bill_values=pv,rev_by_service=rbs,deposit_by_service={},
-        bills_total=int(bb.is_rev.sum()),bills_multi=int(len(xs)),crosssell_rev=int(round(xs['gross'].sum()*VND)),
+        bills_total=npay,bills_multi=int(len(xs_bills)),crosssell_rev=int(round(_ld[_ld.billno.isin(xs_bills)]['rev'].sum()*VND)),
         meta_spend=msp,tk_spend=tsp,spend=msp+tsp,meta_msg=int(mmsg),tk_msg=0,msg_by_service=ms,
         roas=round(revenue/(msp+tsp),1) if (msp+tsp) else 0)
 series_div={dv:[dayrec_div(d,dv) for d in days] for dv in ['Nội khoa','Ngoại khoa']}
