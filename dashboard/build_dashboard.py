@@ -515,7 +515,7 @@ function winSlice(key,f,t){
   const comp=SS.filter(s=>s.date<TODAY_DATE), base=comp.length?comp:SS;
   if(key==='today')return today?[today]:[];
   if(key==='y')return base.length?[base[base.length-1]]:[];
-  if(key==='mtd')return base.filter(s=>s.date.slice(0,7)===MO);
+  if(key==='mtd')return SS.filter(s=>s.date.slice(0,7)===MO);
   if(key==='custom')return SS.filter(s=>s.date>=f && s.date<=t);
   const n={d3:3,d7:7,d15:15,d30:30}[key]||7; return n>=base.length?base.slice():base.slice(-n);
 }
@@ -893,6 +893,7 @@ function overview(){
       <div class="rc"><div class="l">Cọc / pipeline</div><div class="val" style="font-family:'Inter',sans-serif;font-size:25px;font-weight:600;margin-top:6px">${tr(agg(MONTH,s=>s.deposit))}</div><div class="s">Tiền đặt trước cho dịch vụ tương lai</div></div>
       <div class="rc"><div class="l">Tổng cash-in</div><div class="val" style="font-family:'Inter',sans-serif;font-size:25px;font-weight:600;margin-top:6px">${tyS(agg(MONTH,s=>s.cash_in))}</div><div class="s">Hoàn tất + cọc = tiền thực thu trong kỳ</div></div>
     </div>
+    ${DIVFILTER!=='all'?`<div class="note" style="margin-top:10px">Khi lọc <b>${DIVFILTER}</b>: cọc theo khoa có thể nhỏ hơn tổng "Tất cả" \u2014 một phần cọc thuộc dịch vụ chưa map được khoa, không gán vào Nội/Ngoại.</div>`:''}
     ${dqChips()}
   </div>
   ${divProgress()}

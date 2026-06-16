@@ -173,6 +173,7 @@ def dayrec(d):
         median_bill=float(st.median(pv)) if pv else 0.0,mean_bill=float(st.mean(pv)) if pv else 0.0,
         bill_values=pv,rev_by_service=rbs,deposit_by_service={k:int(v) for k,v in dep_svc.items()},
         bills_total=int(bb.is_rev.sum()),bills_multi=int(len(xs)),crosssell_rev=int(round(xs['gross'].sum()*VND)),
+        rev_new=int(round(rev_bills[rev_bills.ctype=='NEW']['gross'].sum()*VND)),rev_tk=int(round(rev_bills[rev_bills.ctype=='TK']['gross'].sum()*VND)),
         meta_spend=md.get(d,{}).get('spend',0),tk_spend=td.get(d,{}).get('spend',0),spend=sp,
         meta_msg=md.get(d,{}).get('msg',0),tk_msg=td.get(d,{}).get('msg',0),msg_by_service=ms,
         roas=round(revenue/sp,1) if sp else 0)
@@ -494,17 +495,31 @@ def dayrec_div(d,division):
     for src in (mms.get(d,{}),tms.get(d,{})):
         for g,v in src.items():
             if DIVMAP.get(g)==division: ms[g]=ms.get(g,0)+v
-    mmsg=msg_div_day(d,division)
-    msp=spend_div_day(d,division); tsp=0   # spend_div_day da gop ca Meta+TikTok
+    # AUDIT (16/6): tach rieng Meta vs TikTok theo khoa (truoc day gop het vao meta_*, tk_*=0)
+    _msp=mspd.get(d,{}).get(division,0); _tsp=tspd.get(d,{}).get(division,0)
+    _mmsg=mmsd.get(d,{}).get(division,0); _tmsg=tmsd.get(d,{}).get(division,0)
     npay=len(dbills)
-    return dict(date=d,gross=revenue,operating=revenue,revenue=revenue,deposit=0,cash_in=revenue,
-        customers=npay,paying=npay,coc=0,zero=0,
+    # AUDIT (16/6): coc tach theo khoa (line-level, dong logic voi khoi divisions dong 408-412)
+    _depv=0.0; _depsvc={}; _ccount=0
+    for _,_r in B[(B.date==d)&(B.is_deposit)].iterrows():
+        _gs=list(_r['sgroups']) if _r['sgroups'] else []
+        _ds={DIVMAP.get(_g) for _g in _gs if DIVMAP.get(_g)}
+        if division not in _ds: continue
+        _ccount+=1; _share=_r['gross']*VND/len(_ds); _depv+=_share
+        _gdiv=[_g for _g in _gs if DIVMAP.get(_g)==division] or ['(chưa rõ DV)']
+        for _g in _gdiv: _depsvc[_g]=_depsvc.get(_g,0)+_share/len(_gdiv)
+    # AUDIT (16/6): ban cheo theo BILL-LEVEL (khop trang Ban cheo: revB[division==d], tong distinct>=2)
+    _rbd=B[(B.date==d)&(B.is_rev)&(B['division']==division)]; _xsd=_rbd[_rbd['distinct']>=2]
+    _newb=set(bb[bb.ctype=='NEW']['bill']); _tkb=set(bb[bb.ctype=='TK']['bill'])
+    _revnew=_ld[_ld.billno.isin(_newb)]['rev'].sum()*VND; _revtk=_ld[_ld.billno.isin(_tkb)]['rev'].sum()*VND
+    return dict(date=d,gross=revenue,operating=revenue,revenue=revenue,deposit=int(round(_depv)),cash_in=revenue+_depv,
+        customers=npay,paying=npay,coc=_ccount,zero=0,
         new=int(((bb.is_rev)&(bb.ctype=='NEW')).sum()),tk=int(((bb.is_rev)&(bb.ctype=='TK')).sum()),
         median_bill=float(st.median(pv)) if pv else 0.0,mean_bill=float(st.mean(pv)) if pv else 0.0,
-        bill_values=pv,rev_by_service=rbs,deposit_by_service={},
-        bills_total=npay,bills_multi=int(len(xs_bills)),crosssell_rev=int(round(_ld[_ld.billno.isin(xs_bills)]['rev'].sum()*VND)),
-        meta_spend=msp,tk_spend=tsp,spend=msp+tsp,meta_msg=int(mmsg),tk_msg=0,msg_by_service=ms,
-        roas=round(revenue/(msp+tsp),1) if (msp+tsp) else 0)
+        bill_values=pv,rev_by_service=rbs,deposit_by_service={k:int(round(v)) for k,v in _depsvc.items()},
+        bills_total=int(len(_rbd)),bills_multi=int(len(_xsd)),crosssell_rev=int(round(_xsd['gross'].sum()*VND)),rev_new=int(round(_revnew)),rev_tk=int(round(_revtk)),
+        meta_spend=_msp,tk_spend=_tsp,spend=_msp+_tsp,meta_msg=int(round(_mmsg)),tk_msg=int(round(_tmsg)),msg_by_service=ms,
+        roas=round(revenue/(_msp+_tsp),1) if (_msp+_tsp) else 0)
 series_div={dv:[dayrec_div(d,dv) for d in days] for dv in ['Nội khoa','Ngoại khoa']}
 
 # AUDIT (16/6): canh bao thieu file / file cu -> in ra log + nhet vao dq.warnings cho dashboard
