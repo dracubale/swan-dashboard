@@ -412,6 +412,7 @@ td.mtd{font-weight:700;color:var(--ink)}
       </div>
     </div>
 
+    <div id="dqbanner"></div>
     <div class="divbar" id="divbar" style="display:none">
       <span class="divbar-lbl">Lọc division</span>
       <button data-d="all" class="on" onclick="setDiv('all')">Tất cả</button>
@@ -1056,7 +1057,7 @@ function platform(){
       ${cmp('CTR',m.ctr!=null?m.ctr+'%':'\u2014 (không có click)',t.ctr!=null?t.ctr+'%':'\u2014')}
       ${cmp('Frequency',m.freq??'\u2014',t.freq??'\u2014')}
     </tbody></table>
-    <div class="note" style="margin-top:12px"><b>Lưu ý:</b> Meta \u201Clead mới\u201D = New messaging contacts; TikTok \u201Clead mới\u201D = Leads (DM). Đừng cộng \u201Cnew contacts\u201D của Meta với \u201Cconversations\u201D của TikTok \u2014 hai khái niệm khác nhau. TikTok rẻ hơn ở <b>hội thoại</b> nhưng đắt hơn ở <b>lead mới</b>.</div></div>`;
+    <div class="note" style="margin-top:12px"><b>Lưu ý:</b> Meta \u201Clead mới\u201D = New messaging contacts; TikTok \u201Clead mới\u201D = Leads (DM). Hai con số này giờ cùng loại (người mới chớm nhắn tin) nên so sánh trực tiếp được; hội thoại (dòng trên) là cấp rộng hơn nên đếm riêng.</div></div>`;
   // Block 2: platform x service
   const px=[];
   const psvc=(p,ads)=>ads.forEach(s=>px.push({plat:p,...s}));
@@ -1541,6 +1542,16 @@ function division(){
   </div>
   <div class="dvgrid">${items.map(card).join('')}</div>`;
 }
+function renderDqBanner(){
+  var b=document.getElementById('dqbanner'); if(!b) return;
+  var w=((DATA.dataquality||{}).warnings)||[];
+  if(!w.length){ b.innerHTML=''; b.style.display='none'; return; }
+  b.style.display='block';
+  b.innerHTML='<div style="margin:0 0 14px;padding:12px 16px;border-radius:12px;background:var(--rose-soft,#FCE8E6);border:1px solid var(--rose,#D64545);color:var(--rose,#9B1C1C);font-size:13.5px;line-height:1.5">'
+    +'<b>\u26A0\uFE0F Cảnh báo dữ liệu</b><ul style="margin:6px 0 0;padding-left:20px">'
+    +w.map(function(x){return '<li>'+x+'</li>';}).join('')
+    +'</ul></div>';
+}
 function show(p){
   window.__page=p;
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
@@ -1550,6 +1561,7 @@ function show(p){
   const el=document.getElementById(p); el.innerHTML=R[p](); el.classList.add('active');
   document.getElementById('ptitle').textContent=titles[p][0];
   document.getElementById('psub').textContent=titles[p][1];
+  renderDqBanner();
   hideTip();
   if(p==='overview'){ VIEW=winSlice('mtd'); GVIEW=winSlice('mtd'); if(!GVIEW.length)GVIEW=winSlice('mtd'); renderChart(); renderGates(); }
   // animate bars

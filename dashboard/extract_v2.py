@@ -141,9 +141,9 @@ def tiktok():
     daily={}; msv={}; spv={}; spd_div={}; msd_div={}
     for d,sub in tf.groupby('d'): daily[d]={'spend':float(sub['Cost'].sum()),'msg':float(sub['msg'].sum())}
     for (d,g),v in tf.groupby(['d','g'])['msg'].sum().items():
-        if v>0: msv.setdefault(d,{}); msv[d][g]=msv[d].get(g,0)+int(round(v)); msd_div.setdefault(d,{}); msd_div[d][_div_for(g,TK_DIV)]=msd_div[d].get(_div_for(g,TK_DIV),0)+v
+        if v>0: msv.setdefault(d,{}); msv[d][g]=msv[d].get(g,0)+int(round(v)); msd_div.setdefault(d,{}); msd_div[d][TK_DIV]=msd_div[d].get(TK_DIV,0)+v
     for (d,g),v in tf.groupby(['d','g'])['Cost'].sum().items():
-        spd_div.setdefault(d,{}); spd_div[d][_div_for(g,TK_DIV)]=spd_div[d].get(_div_for(g,TK_DIV),0)+float(v)
+        spd_div.setdefault(d,{}); spd_div[d][TK_DIV]=spd_div[d].get(TK_DIV,0)+float(v)
     for g,v in tf.groupby('g')['Cost'].sum().items(): spv[g]=spv.get(g,0)+float(v)
     tot=float(tf['Cost'].sum()); unmapped=float(tf[tf.g=='UNMAPPED']['Cost'].sum())/max(1e-9,tot)*100
     return daily,msv,spv,spd_div,msd_div,unmapped,(max(daily) if daily else None)
@@ -316,6 +316,7 @@ def ad_table(fname,sheet,header,namecol,daycol,spendcol,leadcol,convcol,imprcol,
 m_ads=[]
 for _p,_accdiv in META_FILES: m_ads+=ad_table(_p,'Formatted Report',2,'Ad name','Day','Amount spent (VND)','New messaging contacts','Messaging conversations started','Impressions','Reach',None,'Meta',_accdiv)
 t_ads=ad_table(TKFILE,'Sheet1',0,'Ad name','By Day','Cost','Leads (TikTok direct message)','Conversations (TikTok direct message)','Impressions','Reach','Clicks (destination)','TikTok',TK_DIV,is_total=True) if TKFILE else []
+for _a in t_ads: _a['div']='Nội khoa'   # Fix A (16/6): TikTok chay 100% Noi -> ep division ve Noi, bo phan loai theo ten ad
 
 def plat_totals(ads,name,has_click):
     sp=sum(a['spend'] for a in ads); ld=sum(a['lead'] for a in ads); cv=sum(a['conv'] for a in ads)
