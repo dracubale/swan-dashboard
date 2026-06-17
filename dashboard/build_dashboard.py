@@ -190,6 +190,11 @@ tr:last-child td{border-bottom:none}
 .tip .tt-r{display:flex;justify-content:space-between;gap:18px;padding:3px 0}
 .tip .tt-r span{color:#A29A86}.tip .tt-r b{font-weight:700;color:#fff}
 .tip .tt-r.hl b{color:#A9D5C8}
+.tip .ttline{font-size:13.5px;line-height:1.55;margin-top:1px}
+.tip .ttline .cvp{color:#A9D5C8;font-weight:800}
+.tip .ttline .cvn{color:#E9C57D;font-weight:800}
+.tip .ttline .cvd{color:#7FB0E6;font-weight:800}
+.tip .ttx{font-size:11.5px;color:#A29A86;margin-top:8px;line-height:1.55}
 /* 3-gate funnel */
 .gates{display:flex;align-items:stretch;gap:10px;margin-top:16px}
 .gates .gate{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:17px}
@@ -239,7 +244,8 @@ tr:last-child td{border-bottom:none}
 .fpill .cl{font-size:8.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);margin-top:3px}
 .ffml{font-size:10px;font-style:italic;color:var(--muted)}
 .fdrop{font-size:9.5px;font-weight:800}
-.finfo{flex:0 0 auto;width:16px;height:16px;border-radius:50%;border:1px solid var(--line);color:var(--muted);font:italic 700 10px/14px Georgia,serif;display:flex;align-items:center;justify-content:center;cursor:help;position:relative;margin-left:2px}
+.finfo{flex:0 0 auto;width:19px;height:19px;border-radius:50%;border:1.5px solid var(--jade);background:var(--paper-2);color:var(--jade);font:800 11px/1 'Inter',sans-serif;display:flex;align-items:center;justify-content:center;cursor:help;position:relative;margin-left:5px;transition:background .12s,color .12s}
+.finfo:hover{background:var(--jade);color:#fff}
 .ftip{display:none;position:absolute;bottom:135%;left:50%;transform:translateX(-50%);width:240px;background:var(--paper-2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:11px;font-style:normal;font-weight:500;line-height:1.6;color:var(--ink);text-align:left;white-space:normal;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.35)}
 .finfo:hover .ftip,.finfo:focus .ftip{display:block}
 .fdrop.ns{color:var(--rose)} .fdrop.rot{color:var(--gold)}
@@ -739,6 +745,7 @@ function showTip(e,i){
   t.style.top=Math.min(e.clientY+16, window.innerHeight-260)+'px';
 }
 function hideTip(){const t=document.getElementById('tip');if(t)t.style.display='none';}
+function showChipTip(e,el){const t=document.getElementById('tip');if(!t)return;const d=el.querySelector('.ftipd');if(!d){hideTip();return;}t.innerHTML=d.innerHTML;t.style.display='block';t.style.left=Math.min(e.clientX+16, window.innerWidth-250)+'px';t.style.top=Math.min(e.clientY+16, window.innerHeight-150)+'px';}
 function toggleTheme(){const dark=document.documentElement.getAttribute('data-theme')==='dark';const t=dark?'light':'dark';if(t==='dark')document.documentElement.setAttribute('data-theme','dark');else document.documentElement.removeAttribute('data-theme');try{localStorage.setItem('swan-theme',t)}catch(e){}}
 function sparkTip(e,el){const t=document.getElementById('tip');if(!t)return;const raw=el.getAttribute('data-tip')||'';if(!raw){hideTip();return;}const parts=raw.replace('Xu hướng ','').split(' · ');t.innerHTML=`<div class="tt-d" style="font-size:13.5px;margin-bottom:6px">Xu hướng theo ngày</div><div class="tt-r"><span>Khoảng</span><b>${parts[0]||''}</b></div><div class="tt-r"><span>Dữ liệu</span><b>${parts[1]||''}</b></div>`;t.style.display='block';t.style.left=Math.min(e.clientX+16, window.innerWidth-210)+'px';t.style.top=Math.min(e.clientY+16, window.innerHeight-110)+'px';}
 function heat(v,mn,mx){if(v==null||!isFinite(v)||mx<=mn)return '';const t=Math.max(0,Math.min(1,(v-mn)/(mx-mn)));return ` style="background:rgba(18,149,90,${(t*0.20).toFixed(3)})"`;}
@@ -840,17 +847,18 @@ function gatesInner(arr){
   const DT={ic:'rev',name:'Doanh thu',sub:'Chưa gồm hôm nay',big:tyS(rev),
     rows:row('ROAS · Chi/DS',`${spend?(rev/spend).toFixed(1):'—'}x · ${rev?pct(spend,rev).toFixed(1):'—'}%`)+row('AOV · trung vị',`${tr(mn)} · ${tr(med)}`)+row('Bán chéo · DT bill bán chéo',`${attach.toFixed(1)}% · ${tr(xrev)}`)+row('DT New / Tái khám',`${tr(revnew)} / ${tr(revtk)}`),
     by:`DT theo DV: <b>${svc}</b>`};
+  const nf=n=>(typeof n==='number'?n:(+n||0)).toLocaleString('vi-VN');
   let cards=[],chips=[];
   cards.push(QC,TN);
-  chips.push({v:`${msg?k(spend/msg):'—'}`,l:'CPL / tin nhắn',f:'= chi ad ÷ tin nhắn',tip:`chi ad ${tyS(spend)} ÷ ${msg.toLocaleString('vi-VN')} tin nhắn = ${msg?k(spend/msg):'—'}`});
+  chips.push({v:`${msg?k(spend/msg):'—'}`,l:'CPL / tin nhắn',nl:'Chi ad',nv:tyS(spend),dl:'Tin nhắn',dv:nf(msg)});
   if(!isng){
     const LICH={ic:'bk',name:'Lịch hẹn',cls:' key',sub:'Lịch từ mọi nguồn',big:booking.toLocaleString('vi-VN'),unit:'lịch',
       rows:((bnew||btk)?row('Mới / Tái khám',`${bnew} / ${btk}`):'')+row('Dời lịch',doi)+(pending?row('Chưa tới hạn',pending):'')+(cocxa?row('Cọc xa (online)',cocxa):'')+(bmulti?row('Khách đi kèm (>1)',bmulti):'')+(ltbook?row('Lead time đặt→hẹn',`${ltbook.toFixed(1)} ngày`):'')+row('Chi ad / lịch hẹn',booking?trd(spend/booking):'—'),
       by:`Booking theo nguồn: <b>${bsStr}</b>`};
     cards.push(LICH,KHACH,DT);
-    chips.push({v:`${pct(booking,msg).toFixed(1)}%`,l:'tin nhắn → lịch hẹn',f:'= lịch hẹn ÷ tin nhắn',tip:`${booking} lịch hẹn ÷ ${msg.toLocaleString('vi-VN')} tin nhắn = ${pct(booking,msg).toFixed(1)}%`});
-    chips.push({v:`${pct(arrived,due).toFixed(0)}%`,l:'lịch hẹn → đến khám',f:'= đến khám ÷ lịch đã tới hạn',tip:`đến khám ${arrived} ÷ đã tới hạn ${due} = ${pct(arrived,due).toFixed(1)}%<br>đã tới hạn ${due} = lịch hẹn ${booking} − dời ${doi} − chưa tới hạn ${pending}<br>no-show ${noshow} (${pct(noshow,due).toFixed(1)}%)`,drop:'ns',dropt:`−${noshow} no-show (${pct(noshow,due).toFixed(1)}%)`});
-    chips.push({v:`${pct(cnew,dennew).toFixed(0)}%`,l:'đến khám → khách chốt',f:'= chốt mới ÷ đến khám mới',tip:`chốt mới ${cnew} ÷ đến khám mới ${dennew} = ${pct(cnew,dennew).toFixed(1)}%<br>đến khám mới ${dennew} = chốt ${cnew} + rớt ${rotNew} + cọc ${cocnew}`,drop:'rot',dropt:`đến khám mới ${dennew}/${arrived} · ${rotNew} rớt · ${cocnew} cọc`});
+    chips.push({v:`${pct(booking,msg).toFixed(1)}%`,l:'tin nhắn → lịch hẹn',nl:'Lịch hẹn',nv:nf(booking),dl:'Tin nhắn',dv:nf(msg)});
+    chips.push({v:`${pct(arrived,due).toFixed(0)}%`,l:'lịch hẹn → đến khám',nl:'Đến khám',nv:nf(arrived),dl:'Lịch đã tới hạn',dv:nf(due),ex:`Đã tới hạn ${nf(due)} = lịch hẹn ${nf(booking)} − dời ${nf(doi)} − chưa tới hạn ${nf(pending)}<br>No-show ${nf(noshow)} (${pct(noshow,due).toFixed(1)}%)`});
+    chips.push({v:`${pct(cnew,dennew).toFixed(0)}%`,l:'đến khám → khách chốt',nl:'Chốt mới',nv:nf(cnew),dl:'Đến khám mới',dv:nf(dennew),ex:`Đến khám mới ${nf(dennew)} = chốt ${nf(cnew)} + rớt ${nf(rotNew)} + cọc ${nf(cocnew)}`});
   } else {
     const LEAD={ic:'lead',name:'Lead',cls:' lead',sub:'Đang quản lý · nhu cầu thật',big:bkTotal?bkTotal.toLocaleString('vi-VN'):'\u2014',unit:'lead',
       rows:row('Giá kỳ vọng (pipeline)',leadval?tyS(leadval):'\u2014')+row('Lead nguy cơ (treo lâu)',leadrisk||'\u2014')+row('Ngày treo TB',ldays?`${ldays.toFixed(0)} ngày`:'\u2014')+row('Chưa chốt lịch khám',chuaKham),
@@ -863,10 +871,10 @@ function gatesInner(arr){
       rows:row('Chưa gồm hôm nay',tyS(rev))+row('ROAS · Chi/DS',`${spend?(rev/spend).toFixed(1):'\u2014'}x · ${rev?pct(spend,rev).toFixed(1):'\u2014'}%`)+row('AOV · trung vị',`${tr(mn)} · ${tr(med)}`),
       by:`DT theo DV: <b>${svc}</b>`};
     cards.push(LEAD,KHAM,COC,PHAU);
-    chips.push({v:`${msg?pct(bkTotal,msg).toFixed(1)+'%':'\u2014'}`,l:'tin nhắn \u2192 lead',f:'= lead ÷ tin nhắn (snapshot)',tip:`lead ${bkTotal} ÷ ${msg.toLocaleString('vi-VN')} tin nhắn = ${msg?pct(bkTotal,msg).toFixed(1):'—'}%<br>lead là snapshot (không theo khung thời gian)`});
-    chips.push({v:`${bkTotal?pct(nkham,bkTotal).toFixed(0)+'%':'\u2014'}`,l:'lead \u2192 khám',f:'= khám ÷ lead',tip:`khám ${nkham} ÷ lead ${bkTotal} = ${bkTotal?pct(nkham,bkTotal).toFixed(1):'—'}%<br>chưa chốt lịch khám ${chuaKham}`,drop:'ns',dropt:`\u2212${chuaKham} chưa chốt lịch khám`});
-    chips.push({v:`${nkham?pct(cocReached,nkham).toFixed(0)+'%':'\u2014'}`,l:'khám \u2192 cọc',f:'= cọc ÷ khám',tip:`cọc ${cocReached} ÷ khám ${nkham} = ${nkham?pct(cocReached,nkham).toFixed(1):'—'}%<br>tư vấn rớt ${ntvr}`,drop:'rot',dropt:`\u2212${ntvr} tư vấn rớt`});
-    chips.push({v:`${cocReached?pct(nphau,cocReached).toFixed(0)+'%':'\u2014'}`,l:'cọc \u2192 phẫu',f:'= phẫu ÷ cọc',tip:`phẫu ${nphau} ÷ cọc ${cocReached} = ${cocReached?pct(nphau,cocReached).toFixed(1):'—'}%`});
+    chips.push({v:`${msg?pct(bkTotal,msg).toFixed(1)+'%':'\u2014'}`,l:'tin nhắn \u2192 lead',nl:'Lead',nv:nf(bkTotal),dl:'Tin nhắn',dv:nf(msg),ex:'Lead là snapshot (không theo khung thời gian)'});
+    chips.push({v:`${bkTotal?pct(nkham,bkTotal).toFixed(0)+'%':'\u2014'}`,l:'lead \u2192 khám',nl:'Khám',nv:nf(nkham),dl:'Lead',dv:nf(bkTotal),ex:`Chưa chốt lịch khám ${nf(chuaKham)}`});
+    chips.push({v:`${nkham?pct(cocReached,nkham).toFixed(0)+'%':'\u2014'}`,l:'khám \u2192 cọc',nl:'Cọc',nv:nf(cocReached),dl:'Khám',dv:nf(nkham),ex:`Tư vấn rớt ${nf(ntvr)}`});
+    chips.push({v:`${cocReached?pct(nphau,cocReached).toFixed(0)+'%':'\u2014'}`,l:'cọc \u2192 phẫu',nl:'Phẫu',nv:nf(nphau),dl:'Cọc',dv:nf(cocReached)});
   }
   const N=cards.length, COL=['var(--gold)','var(--jade)','var(--rose)'];
   let H=`<div class="fnl" style="grid-template-columns:repeat(${N},minmax(0,1fr))">`;
@@ -875,7 +883,8 @@ function gatesInner(arr){
     H+=cardHTML(c).replace('<div class="fcard',`<div style="grid-column:${i+1};grid-row:1" class="fcard`);
     if(i<N-1){
       const ch=chips[i],col=COL[i%3];
-      H+=`<div class="fchip" style="grid-column:${i+1}/span 2;grid-row:2"><span class="carr" style="color:${col}">↑</span><div class="fpill"><span class="cnum" style="background:${col}">${i+1}</span><div class="cbox"><div class="cv">${ch.v}</div><div class="cl">${ch.l}</div></div>${ch.tip?`<span class="finfo" tabindex="0">i<span class="ftip">${ch.tip}</span></span>`:''}</div></div>`;
+      const thtml=`<div class="tt-d">${ch.l}</div><div class="ttline"><b class="cvp">${ch.v}</b> = ${ch.nl} (<b class="cvn">${ch.nv}</b>) / ${ch.dl} (<b class="cvd">${ch.dv}</b>)</div>${ch.ex?`<div class="ttx">${ch.ex}</div>`:''}`;
+      H+=`<div class="fchip" style="grid-column:${i+1}/span 2;grid-row:2"><span class="carr" style="color:${col}">↑</span><div class="fpill"><span class="cnum" style="background:${col}">${i+1}</span><div class="cbox"><div class="cv">${ch.v}</div><div class="cl">${ch.l}</div></div><span class="finfo" tabindex="0" onmousemove="showChipTip(event,this)" onmouseleave="hideTip()"><span class="ftipd" style="display:none">${thtml}</span>i</span></div></div>`;
     }
   });
   H+='</div>';
