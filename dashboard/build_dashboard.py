@@ -239,6 +239,9 @@ tr:last-child td{border-bottom:none}
 .fpill .cl{font-size:8.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);margin-top:3px}
 .ffml{font-size:10px;font-style:italic;color:var(--muted)}
 .fdrop{font-size:9.5px;font-weight:800}
+.finfo{flex:0 0 auto;width:16px;height:16px;border-radius:50%;border:1px solid var(--line);color:var(--muted);font:italic 700 10px/14px Georgia,serif;display:flex;align-items:center;justify-content:center;cursor:help;position:relative;margin-left:2px}
+.ftip{display:none;position:absolute;bottom:135%;left:50%;transform:translateX(-50%);width:240px;background:var(--paper-2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:11px;font-style:normal;font-weight:500;line-height:1.6;color:var(--ink);text-align:left;white-space:normal;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.finfo:hover .ftip,.finfo:focus .ftip{display:block}
 .fdrop.ns{color:var(--rose)} .fdrop.rot{color:var(--gold)}
 .fstar{font-size:8.5px;font-weight:800;color:var(--gold);letter-spacing:.05em;text-transform:uppercase}
 @media(max-width:760px){.fnl{display:flex!important;flex-direction:column;grid-template-columns:none!important}.fcard,.fchip{grid-column:auto!important;grid-row:auto!important;justify-self:stretch}.fchip{max-width:none;flex-direction:row;flex-wrap:wrap;justify-content:flex-start;gap:9px}.fchip .carr{transform:rotate(90deg)}.fline{display:none}}
@@ -839,15 +842,15 @@ function gatesInner(arr){
     by:`DT theo DV: <b>${svc}</b>`};
   let cards=[],chips=[];
   cards.push(QC,TN);
-  chips.push({v:`${msg?k(spend/msg):'—'}`,l:'CPL / tin nhắn',f:'= chi ad ÷ tin nhắn'});
+  chips.push({v:`${msg?k(spend/msg):'—'}`,l:'CPL / tin nhắn',f:'= chi ad ÷ tin nhắn',tip:`chi ad ${tyS(spend)} ÷ ${msg.toLocaleString('vi-VN')} tin nhắn = ${msg?k(spend/msg):'—'}`});
   if(!isng){
     const LICH={ic:'bk',name:'Lịch hẹn',cls:' key',sub:'Lịch từ mọi nguồn',big:booking.toLocaleString('vi-VN'),unit:'lịch',
       rows:((bnew||btk)?row('Mới / Tái khám',`${bnew} / ${btk}`):'')+row('Dời lịch',doi)+(pending?row('Chưa tới hạn',pending):'')+(cocxa?row('Cọc xa (online)',cocxa):'')+(bmulti?row('Khách đi kèm (>1)',bmulti):'')+(ltbook?row('Lead time đặt→hẹn',`${ltbook.toFixed(1)} ngày`):'')+row('Chi ad / lịch hẹn',booking?trd(spend/booking):'—'),
       by:`Booking theo nguồn: <b>${bsStr}</b>`};
     cards.push(LICH,KHACH,DT);
-    chips.push({v:`${pct(booking,msg).toFixed(1)}%`,l:'tin nhắn → lịch hẹn',f:'= lịch hẹn ÷ tin nhắn'});
-    chips.push({v:`${pct(arrived,due).toFixed(0)}%`,l:'lịch hẹn → đến khám',f:'= đến khám ÷ lịch đã tới hạn',drop:'ns',dropt:`−${noshow} no-show (${pct(noshow,due).toFixed(1)}%)`});
-    chips.push({v:`${pct(cnew,dennew).toFixed(0)}%`,l:'đến khám → chốt (khách mới)',f:'= chốt mới ÷ đến khám mới',drop:'rot',dropt:`đến khám mới ${dennew}/${arrived} · ${rotNew} rớt · ${cocnew} cọc`});
+    chips.push({v:`${pct(booking,msg).toFixed(1)}%`,l:'tin nhắn → lịch hẹn',f:'= lịch hẹn ÷ tin nhắn',tip:`${booking} lịch hẹn ÷ ${msg.toLocaleString('vi-VN')} tin nhắn = ${pct(booking,msg).toFixed(1)}%`});
+    chips.push({v:`${pct(arrived,due).toFixed(0)}%`,l:'lịch hẹn → đến khám',f:'= đến khám ÷ lịch đã tới hạn',tip:`đến khám ${arrived} ÷ đã tới hạn ${due} = ${pct(arrived,due).toFixed(1)}%<br>đã tới hạn ${due} = lịch hẹn ${booking} − dời ${doi} − chưa tới hạn ${pending}<br>no-show ${noshow} (${pct(noshow,due).toFixed(1)}%)`,drop:'ns',dropt:`−${noshow} no-show (${pct(noshow,due).toFixed(1)}%)`});
+    chips.push({v:`${pct(cnew,dennew).toFixed(0)}%`,l:'đến khám → chốt (khách mới)',f:'= chốt mới ÷ đến khám mới',tip:`chốt mới ${cnew} ÷ đến khám mới ${dennew} = ${pct(cnew,dennew).toFixed(1)}%<br>đến khám mới ${dennew} = chốt ${cnew} + rớt ${rotNew} + cọc ${cocnew}`,drop:'rot',dropt:`đến khám mới ${dennew}/${arrived} · ${rotNew} rớt · ${cocnew} cọc`});
   } else {
     const LEAD={ic:'lead',name:'Lead',cls:' lead',sub:'Đang quản lý · nhu cầu thật',big:bkTotal?bkTotal.toLocaleString('vi-VN'):'\u2014',unit:'lead',
       rows:row('Giá kỳ vọng (pipeline)',leadval?tyS(leadval):'\u2014')+row('Lead nguy cơ (treo lâu)',leadrisk||'\u2014')+row('Ngày treo TB',ldays?`${ldays.toFixed(0)} ngày`:'\u2014')+row('Chưa chốt lịch khám',chuaKham),
@@ -860,10 +863,10 @@ function gatesInner(arr){
       rows:row('Doanh thu đã làm',tyS(rev))+row('ROAS · Chi/DS',`${spend?(rev/spend).toFixed(1):'\u2014'}x · ${rev?pct(spend,rev).toFixed(1):'\u2014'}%`)+row('AOV · trung vị',`${tr(mn)} · ${tr(med)}`),
       by:`DT theo DV: <b>${svc}</b>`};
     cards.push(LEAD,KHAM,COC,PHAU);
-    chips.push({v:`${msg?pct(bkTotal,msg).toFixed(1)+'%':'\u2014'}`,l:'tin nhắn \u2192 lead',f:'= lead ÷ tin nhắn (snapshot)'});
-    chips.push({v:`${bkTotal?pct(nkham,bkTotal).toFixed(0)+'%':'\u2014'}`,l:'lead \u2192 khám',f:'= khám ÷ lead',drop:'ns',dropt:`\u2212${chuaKham} chưa chốt lịch khám`});
-    chips.push({v:`${nkham?pct(cocReached,nkham).toFixed(0)+'%':'\u2014'}`,l:'khám \u2192 cọc',f:'= cọc ÷ khám',drop:'rot',dropt:`\u2212${ntvr} tư vấn rớt`});
-    chips.push({v:`${cocReached?pct(nphau,cocReached).toFixed(0)+'%':'\u2014'}`,l:'cọc \u2192 phẫu',f:'= phẫu ÷ cọc'});
+    chips.push({v:`${msg?pct(bkTotal,msg).toFixed(1)+'%':'\u2014'}`,l:'tin nhắn \u2192 lead',f:'= lead ÷ tin nhắn (snapshot)',tip:`lead ${bkTotal} ÷ ${msg.toLocaleString('vi-VN')} tin nhắn = ${msg?pct(bkTotal,msg).toFixed(1):'—'}%<br>lead là snapshot (không theo khung thời gian)`});
+    chips.push({v:`${bkTotal?pct(nkham,bkTotal).toFixed(0)+'%':'\u2014'}`,l:'lead \u2192 khám',f:'= khám ÷ lead',tip:`khám ${nkham} ÷ lead ${bkTotal} = ${bkTotal?pct(nkham,bkTotal).toFixed(1):'—'}%<br>chưa chốt lịch khám ${chuaKham}`,drop:'ns',dropt:`\u2212${chuaKham} chưa chốt lịch khám`});
+    chips.push({v:`${nkham?pct(cocReached,nkham).toFixed(0)+'%':'\u2014'}`,l:'khám \u2192 cọc',f:'= cọc ÷ khám',tip:`cọc ${cocReached} ÷ khám ${nkham} = ${nkham?pct(cocReached,nkham).toFixed(1):'—'}%<br>tư vấn rớt ${ntvr}`,drop:'rot',dropt:`\u2212${ntvr} tư vấn rớt`});
+    chips.push({v:`${cocReached?pct(nphau,cocReached).toFixed(0)+'%':'\u2014'}`,l:'cọc \u2192 phẫu',f:'= phẫu ÷ cọc',tip:`phẫu ${nphau} ÷ cọc ${cocReached} = ${cocReached?pct(nphau,cocReached).toFixed(1):'—'}%`});
   }
   const N=cards.length, COL=['var(--gold)','var(--jade)','var(--rose)'];
   let H=`<div class="fnl" style="grid-template-columns:repeat(${N},minmax(0,1fr))">`;
@@ -872,7 +875,7 @@ function gatesInner(arr){
     H+=cardHTML(c).replace('<div class="fcard',`<div style="grid-column:${i+1};grid-row:1" class="fcard`);
     if(i<N-1){
       const ch=chips[i],col=COL[i%3];
-      H+=`<div class="fchip" style="grid-column:${i+1}/span 2;grid-row:2"><span class="carr" style="color:${col}">↑</span><div class="fpill"><span class="cnum" style="background:${col}">${i+1}</span><div class="cbox"><div class="cv">${ch.v}</div><div class="cl">${ch.l}</div></div></div><div class="ffml">${ch.f}</div>${ch.drop?`<span class="fdrop ${ch.drop}">${ch.dropt}</span>`:''}</div>`;
+      H+=`<div class="fchip" style="grid-column:${i+1}/span 2;grid-row:2"><span class="carr" style="color:${col}">↑</span><div class="fpill"><span class="cnum" style="background:${col}">${i+1}</span><div class="cbox"><div class="cv">${ch.v}</div><div class="cl">${ch.l}</div></div>${ch.tip?`<span class="finfo" tabindex="0">i<span class="ftip">${ch.tip}</span></span>`:''}</div></div>`;
     }
   });
   H+='</div>';
