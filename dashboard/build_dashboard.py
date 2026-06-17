@@ -837,7 +837,7 @@ function gatesInner(arr){
     by:`Tin nhắn theo DV: <b>${msStr}</b>`};
   const KHACH={ic:'cust',name:'Khách',cls:' key',sub:'Khách đến phòng khám',big:arrived.toLocaleString('vi-VN'),unit:'khách',
     rows:(isng?row('Khách có DT',paying)+row('Khách chỉ TK',zero)+row('Đến không làm',rot)+row('Chi ad / khách đến',arrived?trd(spend/arrived):'—')+row('Chi ad / khách có DT + cọc',chot?trd(spend/chot):'—'):row('Có DT',paying)+row('Chỉ TK',chiTK)+row('Khách rớt (mới)',rotNew)+row('Chi ad / khách đến',arrived?trd(spend/arrived):'—')+row('Chi ad / khách có DT',paying?trd(spend/paying):'—'))+sub2('Chờ thực hiện · cọc')+row('Đã cọc',`${coc} khách · ${tr(dep)}`,1)};
-  const DT={ic:'rev',name:'Doanh thu',sub:'Doanh thu đã làm',big:tyS(rev),
+  const DT={ic:'rev',name:'Doanh thu',sub:'Chưa gồm hôm nay',big:tyS(rev),
     rows:row('ROAS · Chi/DS',`${spend?(rev/spend).toFixed(1):'—'}x · ${rev?pct(spend,rev).toFixed(1):'—'}%`)+row('AOV · trung vị',`${tr(mn)} · ${tr(med)}`)+row('Bán chéo · DT bill bán chéo',`${attach.toFixed(1)}% · ${tr(xrev)}`)+row('DT New / Tái khám',`${tr(revnew)} / ${tr(revtk)}`),
     by:`DT theo DV: <b>${svc}</b>`};
   let cards=[],chips=[];
