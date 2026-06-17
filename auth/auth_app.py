@@ -184,6 +184,12 @@ def filter_bundle(role):
             out[k] = v
         else:                       # trang bị cấm -> xóa rỗng đúng kiểu để không vỡ derive
             out[k] = [] if isinstance(v, list) else ({} if isinstance(v, dict) else v)
+    # Phễu vận hành (overview) Ngoại đọc bkphau snapshot -> chỉ role xem được pipeline Ngoại
+    # mới nhận, và CHỈ số tổng hợp (bỏ leads[] chứa tên/SĐT khách).
+    if role in ('ceo','ops','ngoai'):
+        _bk = raw.get('bkphau')
+        if isinstance(_bk, dict) and _bk:
+            out['bkphau'] = {kk: vv for kk, vv in _bk.items() if kk != 'leads'}
     return apply_scope(out, role)   # GĐ2: lọc tiếp theo khoa
 
 # ----------------------------------------------------------------------------

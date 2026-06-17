@@ -205,6 +205,43 @@ tr:last-child td{border-bottom:none}
 .gby{font-size:11px;color:var(--ink-soft);margin-top:7px;line-height:1.55}
 .gby b{color:var(--ink);font-weight:700}
 .garrow{display:flex;align-items:center;font-size:20px;color:#C7BFA8;font-weight:700}
+.fnl{display:grid;column-gap:14px;row-gap:18px;margin-top:16px;align-items:stretch}
+.fcard{background:var(--paper);border:1px solid var(--accent-soft-bd);box-shadow:0 0 0 3px var(--accent-soft);border-radius:16px;padding:16px 17px;display:flex;flex-direction:column;grid-row:1}
+.fcard.lead{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+.fch{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+.ficon{width:38px;height:38px;border-radius:11px;background:var(--accent-soft);display:grid;place-items:center;flex-shrink:0;color:var(--jade)}
+.ficon svg{width:20px;height:20px}
+.fcard.lead .ficon{background:var(--gold-soft);color:var(--gold)}
+.fch .ft{min-width:0}
+.fch .fnm{font-size:14.5px;font-weight:800;line-height:1.12}
+.fch .fsub{font-size:11px;color:var(--ink-soft);margin-top:2px;line-height:1.25}
+.fbig{font-family:'Inter',sans-serif;font-size:33px;font-weight:600;letter-spacing:-.02em;line-height:1}
+.fbig small{font-size:12px;font-weight:700;color:var(--ink-soft);margin-left:5px}
+.frows{margin-top:12px;display:flex;flex-direction:column}
+.fm{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:12.5px;border-top:1px solid var(--line)}
+.fm .fl{color:var(--ink-soft)} .fm .fv{font-weight:700;text-align:right;white-space:nowrap}
+.fm.coc .fv{color:var(--gold)}
+.fsub2{display:flex;align-items:center;gap:7px;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
+.fsub2::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0}
+.fby{font-size:11px;color:var(--ink-soft);margin-top:11px;line-height:1.6}
+.fby b{color:var(--ink);font-weight:700}
+.fwait{font-size:10px;font-style:italic;color:var(--muted);margin-top:11px;padding-top:9px;border-top:1px dashed var(--line)}
+.fchip{grid-row:2;justify-self:center;display:flex;flex-direction:column;align-items:center;gap:5px;max-width:235px;text-align:center;position:relative;z-index:1}
+.fline{align-self:start;margin-top:42px;display:flex;align-items:center;z-index:0;pointer-events:none;opacity:.7}
+.fdot{width:7px;height:7px;border-radius:50%;background:var(--accent-soft-bd);flex-shrink:0;margin-right:-1px}
+.fbar{flex:1;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,var(--accent-soft-bd) 14%,var(--jade-2) 92%)}
+.fhd{width:0;height:0;border-top:7px solid transparent;border-bottom:7px solid transparent;border-left:11px solid var(--jade-2);margin-left:-1px}
+.fchip .carr{font-size:18px;font-weight:800;line-height:1}
+.fpill{display:flex;align-items:center;gap:11px;background:var(--paper-2);border:1px solid var(--gold);border-radius:13px;padding:9px 14px;box-shadow:0 0 0 3px var(--gold-soft)}
+.fpill .cnum{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:12.5px;flex-shrink:0}
+.fpill .cbox{text-align:left;min-width:0}
+.fpill .cv{font-family:'Inter',sans-serif;font-size:18px;font-weight:700;line-height:1;letter-spacing:-.01em}
+.fpill .cl{font-size:8.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);margin-top:3px}
+.ffml{font-size:10px;font-style:italic;color:var(--muted)}
+.fdrop{font-size:9.5px;font-weight:800}
+.fdrop.ns{color:var(--rose)} .fdrop.rot{color:var(--gold)}
+.fstar{font-size:8.5px;font-weight:800;color:var(--gold);letter-spacing:.05em;text-transform:uppercase}
+@media(max-width:760px){.fnl{display:flex!important;flex-direction:column;grid-template-columns:none!important}.fcard,.fchip{grid-column:auto!important;grid-row:auto!important;justify-self:stretch}.fchip{max-width:none;flex-direction:row;flex-wrap:wrap;justify-content:flex-start;gap:9px}.fchip .carr{transform:rotate(90deg)}.fline{display:none}}
 #chartBox{margin-top:14px}
 /* pie / donut */
 .piewrap{display:flex;gap:28px;align-items:center;flex-wrap:wrap;margin-top:6px}
@@ -412,7 +449,6 @@ td.mtd{font-weight:700;color:var(--ink)}
       </div>
     </div>
 
-    <div id="dqbanner"></div>
     <div class="divbar" id="divbar" style="display:none">
       <span class="divbar-lbl">Lọc division</span>
       <button data-d="all" class="on" onclick="setDiv('all')">Tất cả</button>
@@ -515,7 +551,7 @@ function winSlice(key,f,t){
   const comp=SS.filter(s=>s.date<TODAY_DATE), base=comp.length?comp:SS;
   if(key==='today')return today?[today]:[];
   if(key==='y')return base.length?[base[base.length-1]]:[];
-  if(key==='mtd')return SS.filter(s=>s.date.slice(0,7)===MO);
+  if(key==='mtd')return base.filter(s=>s.date.slice(0,7)===MO);
   if(key==='custom')return SS.filter(s=>s.date>=f && s.date<=t);
   const n={d3:3,d7:7,d15:15,d30:30}[key]||7; return n>=base.length?base.slice():base.slice(-n);
 }
@@ -745,51 +781,103 @@ function divProgress(){
     <div class="dv-proj" style="margin-top:11px"><span class="dv-pill ${pill}">${pjlab}</span><span>Dự phóng cuối tháng: <b style="color:var(--ink)">${tyS(seg.projected_month)}</b> (${seg.pct_projected}% target)</span></div>
   </div>`;
 }
+const FICON={
+ ad:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>',
+ msg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+ lead:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
+ bk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+ exam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+ cust:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+ rev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>'
+};
 function gatesInner(arr){
+  const isng=DIVFILTER==='Ngoại khoa';
   const spend=agg(arr,s=>s.spend),meta=agg(arr,s=>s.meta_spend),tk=agg(arr,s=>s.tk_spend);
   const metamsg=agg(arr,s=>s.meta_msg),tkmsg=agg(arr,s=>s.tk_msg),msg=metamsg+tkmsg;
+  const msgnew=agg(arr,s=>s.msg_new||0),msgconv=agg(arr,s=>s.msg_conv||0);
+  const _BK=(typeof DATA!=='undefined'&&DATA.bkphau)?DATA.bkphau:null;
+  const booking=agg(arr,s=>s.booking||0),arrived=agg(arr,s=>s.den||0);
+  const noshow=agg(arr,s=>s.noshow||0),rot=agg(arr,s=>s.rot||0),cocxa=agg(arr,s=>s.cocxa||0),doi=agg(arr,s=>s.doi||0);
+  const due=arrived+noshow, pending=Math.max(0,booking-arrived-noshow-doi);
+  const bnew=agg(arr,s=>s.booking_new||0),btk=agg(arr,s=>s.booking_tk||0),bmulti=agg(arr,s=>s.booking_multi||0);
+  const ltbook=arr.length?(arr.reduce((x,s)=>x+(s.book_lead||0),0)/arr.length):0;
   const paying=agg(arr,s=>s.paying),coc=agg(arr,s=>s.coc),zero=agg(arr,s=>s.zero),cust=agg(arr,s=>s.customers);
-  const rev=agg(arr,s=>s.operating);
-  const conv=msg?(paying+coc)/msg*100:0;        // chỉ tính khách có DT + cọc
-  const cac=(paying+coc)?spend/(paying+coc):0;   // khách = DT + cọc
-  const ms=mergeDict(arr,'msg_by_service');
-  const msStr=Object.entries(ms).sort((a,b)=>b[1]-a[1]).map(([g,v])=>`${g} ${v}`).join(' · ')||'—';
-  const rbs=mergeDict(arr,'rev_by_service');
-  const svc=Object.entries(rbs).sort((a,b)=>b[1]-a[1]).map(([g,v])=>`${g} ${tyS(v)}`).join(' · ')||'—';
-  const xrev=agg(arr,s=>s.crosssell_rev||0);
-  const bt=agg(arr,s=>s.bills_total||0),bm=agg(arr,s=>s.bills_multi||0);
-  const attach=bt?(bm/bt*100):0;
-  const vals=poolVals(arr), med=median(vals), mn=mean(vals);
-  return `<div class="gates">
-      <div class="gate">
-        <div class="ghead"><span class="gnum" style="background:var(--gold)">1</span><div><b>Quảng cáo → Tin nhắn</b><i>Tiền ad có tạo đủ lead rẻ?</i></div></div>
-        <div class="gbig">${msg.toLocaleString('vi-VN')}<span>tin nhắn</span></div>
-        <div class="grow"><span>CPL / tin nhắn</span><b>${msg?k(spend/msg):'—'}</b></div>
-        <div class="grow"><span>Chi quảng cáo</span><b>${tyS(spend)}</b></div>
-        <div class="gsplit">Meta ${metamsg} (CPL ${metamsg?k(meta/metamsg):'—'}) · TikTok ${tkmsg} (CPL ${tkmsg?k(tk/tkmsg):'—'})</div>
-        <div class="gby">Tin nhắn theo DV: <b>${msStr}</b></div>
-      </div>
-      <div class="garrow">→</div>
-      <div class="gate">
-        <div class="ghead"><span class="gnum" style="background:var(--jade)">2</span><div><b>Tin nhắn → Khách</b><i>Sale có chốt được lead?</i></div></div>
-        <div class="gbig">${conv.toFixed(1)}<span>% chuyển đổi</span></div>
-        <div class="grow"><span>Khách có doanh thu</span><b>${paying}</b></div>
-        <div class="grow"><span>Khách cọc</span><b>${coc}</b></div>
-        <div class="grow"><span>Khách thăm khám</span><b>${zero}</b></div>
-        <div class="grow"><span>Chi phí ad / khách (DT+cọc)</span><b>${(paying+coc)?trd(cac):'—'}</b></div>
-        <div class="gby">Chuyển đổi = (khách DT + cọc) ÷ tin nhắn = (${paying}+${coc})/${msg}. Tổng lượt khách: <b>${cust}</b>.</div>
-      </div>
-      <div class="garrow">→</div>
-      <div class="gate">
-        <div class="ghead"><span class="gnum" style="background:var(--rose)">3</span><div><b>Khách → Giá trị</b><i>Mỗi khách mang về bao nhiêu?</i></div></div>
-        <div class="gbig">${tyS(rev)}<span>doanh thu</span></div>
-        <div class="grow"><span>ROAS · Chi/DS</span><b>${spend?(rev/spend).toFixed(1):'—'}x · ${rev?(spend/rev*100).toFixed(1):'—'}%</b></div>
-        <div class="grow"><span>AOV · trung vị</span><b>${tr(mn)} · ${tr(med)}</b></div>
-        <div class="grow"><span>Bán chéo · DT bill bán chéo</span><b>${attach.toFixed(1)}% · ${tr(xrev)}</b></div>
-        <div class="gby">DT theo DV: <b>${svc}</b></div>
-      </div>
-    </div>
-    <div class="note" style="margin-top:14px"><b>Đọc nhanh:</b> Gate 1 yếu → lead đắt, sửa quảng cáo. Gate 1 ổn mà Gate 2 yếu → khâu chốt sale. Gate 1–2 ổn mà Gate 3 yếu → khách giá trị thấp hoặc thiếu bán chéo.</div>`;
+  const chot=paying+coc;
+  const cnew=agg(arr,s=>s.new||0),dennew=agg(arr,s=>s.den_new||0);
+  const cocnew=agg(arr,s=>s.coc_new||0);
+  const rotNew=Math.max(0,dennew-cnew-cocnew), chiTK=Math.max(0,arrived-paying-coc-rotNew);
+  const rev=agg(arr,s=>s.operating),dep=agg(arr,s=>s.deposit),xrev=agg(arr,s=>s.crosssell_rev||0);
+  const bt=agg(arr,s=>s.bills_total||0),bm=agg(arr,s=>s.bills_multi||0),attach=bt?bm/bt*100:0;
+  const vals=poolVals(arr),med=median(vals),mn=mean(vals);
+  const revnew=agg(arr,s=>s.rev_new||0),revtk=agg(arr,s=>s.rev_tk||0);
+  const lead=(isng&&_BK)?(_BK.n_nuoi||0):agg(arr,s=>s.lead_nuoi||0),leadval=(isng&&_BK)?(_BK.pipeline_value||0):agg(arr,s=>s.lead_value||0),leadrisk=(isng&&_BK)?(_BK.n_at_risk||0):agg(arr,s=>s.lead_risk||0);
+  const ldays=(isng&&_BK)?(_BK.days_pending_avg||0):(arr.length?(arr.reduce((x,s)=>x+(s.lead_days||0),0)/arr.length):0);
+  const bkTotal=(isng&&_BK)?(_BK.total_leads||0):0, nkham=(isng&&_BK)?(_BK.n_kham||0):0, ncoc=(isng&&_BK)?(_BK.n_coc||0):0, nphau=(isng&&_BK)?(_BK.n_phau||0):0, ntvr=(isng&&_BK)?(_BK.n_tuvanrot||0):0;
+  const cocReached=ncoc+nphau, chuaKham=Math.max(0,bkTotal-nkham);
+  const ndays=arr.length||1, adDays=arr.filter(s=>(s.spend||0)>0).length;
+  const pct=(n,d)=>d?(n/d*100):0;
+  const MS=(typeof activeSeries==='function'&&typeof TODAY_DATE!=='undefined'&&TODAY_DATE)?activeSeries().filter(s=>s.date.slice(0,7)===TODAY_DATE.slice(0,7)):arr;
+  const monthSpend=agg(MS,s=>s.spend);
+  const adsvcStr=Object.entries(mergeDict(arr,'spend_by_service')).sort((a,b)=>b[1]-a[1]).map(([g,v])=>`${g} ${tyS(v)}`).join(' · ')||'—';
+  const msStr=Object.entries(mergeDict(arr,'msg_by_service')).sort((a,b)=>b[1]-a[1]).map(([g,v])=>`${g} ${v}`).join(' · ')||'—';
+  const svc=Object.entries(mergeDict(arr,'rev_by_service')).sort((a,b)=>b[1]-a[1]).map(([g,v])=>`${g} ${tyS(v)}`).join(' · ')||'—';
+  const bsStr=Object.entries(mergeDict(arr,'booking_src')).sort((a,b)=>b[1]-a[1]).map(([g,v])=>`${g} ${v}`).join(' · ')||'—';
+  const leadsvcStr=((isng&&_BK&&_BK.by_service)?Object.entries(_BK.by_service):Object.entries(mergeDict(arr,'lead_by_service'))).sort((a,b)=>b[1]-a[1]).map(([g,v])=>`${g} ${v}`).join(' · ')||'—';
+  const row=(l,v,c)=>`<div class="fm${c?' coc':''}"><span class="fl">${l}</span><span class="fv">${v}</span></div>`;
+  const sub2=(t)=>`<div class="fsub2">${t}</div>`;
+  const cardHTML=(c)=>`<div class="fcard${c.cls||''}"><div class="fch"><span class="ficon">${FICON[c.ic]}</span><div class="ft"><div class="fnm">${c.name}</div><div class="fsub">${c.sub}</div></div></div><div class="fbig">${c.big}${c.unit?`<small>${c.unit}</small>`:''}</div><div class="frows">${c.rows||''}</div>${c.by?`<div class="fby">${c.by}</div>`:''}${c.wait?`<div class="fwait">${c.wait}</div>`:''}</div>`;
+  const QC={ic:'ad',name:'Quảng cáo',sub:'Tổng chi Meta + TikTok',big:tyS(spend),
+    rows:row('Meta',`${tyS(meta)} (${pct(meta,spend).toFixed(0)}%)`)+row('TikTok',`${tyS(tk)} (${pct(tk,spend).toFixed(0)}%)`)+row('Chi ad / ngày',trd(spend/ndays))+row('Tổng chi tháng',tyS(monthSpend)),
+    by:`Chi ad theo DV: <b>${adsvcStr}</b>`};
+  const TN={ic:'msg',name:'Tin nhắn',sub:'Tin nhắn Meta + TikTok',big:msg.toLocaleString('vi-VN'),unit:'tin',
+    rows:row('Meta (CPL)',`${metamsg} · ${metamsg?k(meta/metamsg):'—'}`)+row('TikTok (CPL)',`${tkmsg} · ${tkmsg?k(tk/tkmsg):'—'}`)+(msgnew?row('Tin nhắn mới',msgnew.toLocaleString('vi-VN')):'')+(msgconv?row('Tổng hội thoại',msgconv.toLocaleString('vi-VN')):''),
+    by:`Tin nhắn theo DV: <b>${msStr}</b>`};
+  const KHACH={ic:'cust',name:'Khách',cls:' key',sub:'Khách đến phòng khám',big:arrived.toLocaleString('vi-VN'),unit:'khách',
+    rows:(isng?row('Khách có DT',paying)+row('Khách chỉ TK',zero)+row('Đến không làm',rot)+row('Chi ad / khách đến',arrived?trd(spend/arrived):'—')+row('Chi ad / khách có DT + cọc',chot?trd(spend/chot):'—'):row('Có DT',paying)+row('Chỉ TK',chiTK)+row('Khách rớt (mới)',rotNew)+row('Chi ad / khách đến',arrived?trd(spend/arrived):'—')+row('Chi ad / khách có DT',paying?trd(spend/paying):'—'))+sub2('Chờ thực hiện · cọc')+row('Đã cọc',`${coc} khách · ${tr(dep)}`,1)};
+  const DT={ic:'rev',name:'Doanh thu',sub:'Doanh thu đã làm',big:tyS(rev),
+    rows:row('ROAS · Chi/DS',`${spend?(rev/spend).toFixed(1):'—'}x · ${rev?pct(spend,rev).toFixed(1):'—'}%`)+row('AOV · trung vị',`${tr(mn)} · ${tr(med)}`)+row('Bán chéo · DT bill bán chéo',`${attach.toFixed(1)}% · ${tr(xrev)}`)+row('DT New / Tái khám',`${tr(revnew)} / ${tr(revtk)}`),
+    by:`DT theo DV: <b>${svc}</b>`};
+  let cards=[],chips=[];
+  cards.push(QC,TN);
+  chips.push({v:`${msg?k(spend/msg):'—'}`,l:'CPL / tin nhắn',f:'= chi ad ÷ tin nhắn'});
+  if(!isng){
+    const LICH={ic:'bk',name:'Lịch hẹn',cls:' key',sub:'Lịch từ mọi nguồn',big:booking.toLocaleString('vi-VN'),unit:'lịch',
+      rows:((bnew||btk)?row('Mới / Tái khám',`${bnew} / ${btk}`):'')+row('Dời lịch',doi)+(pending?row('Chưa tới hạn',pending):'')+(cocxa?row('Cọc xa (online)',cocxa):'')+(bmulti?row('Khách đi kèm (>1)',bmulti):'')+(ltbook?row('Lead time đặt→hẹn',`${ltbook.toFixed(1)} ngày`):'')+row('Chi ad / lịch hẹn',booking?trd(spend/booking):'—'),
+      by:`Booking theo nguồn: <b>${bsStr}</b>`};
+    cards.push(LICH,KHACH,DT);
+    chips.push({v:`${pct(booking,msg).toFixed(1)}%`,l:'tin nhắn → lịch hẹn',f:'= lịch hẹn ÷ tin nhắn'});
+    chips.push({v:`${pct(arrived,due).toFixed(0)}%`,l:'lịch hẹn → đến khám',f:'= đến khám ÷ lịch đã tới hạn',drop:'ns',dropt:`−${noshow} no-show (${pct(noshow,due).toFixed(1)}%)`});
+    chips.push({v:`${pct(cnew,dennew).toFixed(0)}%`,l:'đến khám → chốt (khách mới)',f:'= chốt mới ÷ đến khám mới',drop:'rot',dropt:`đến khám mới ${dennew}/${arrived} · ${rotNew} rớt · ${cocnew} cọc`});
+  } else {
+    const LEAD={ic:'lead',name:'Lead',cls:' lead',sub:'Đang quản lý · nhu cầu thật',big:bkTotal?bkTotal.toLocaleString('vi-VN'):'\u2014',unit:'lead',
+      rows:row('Giá kỳ vọng (pipeline)',leadval?tyS(leadval):'\u2014')+row('Lead nguy cơ (treo lâu)',leadrisk||'\u2014')+row('Ngày treo TB',ldays?`${ldays.toFixed(0)} ngày`:'\u2014')+row('Chưa chốt lịch khám',chuaKham),
+      by:`Lead theo DV: <b>${leadsvcStr}</b>`};
+    const KHAM={ic:'exam',name:'Khám',cls:' key',sub:'Đã đến khám · có master',big:nkham?nkham.toLocaleString('vi-VN'):'\u2014',unit:'khách',
+      rows:row('Tư vấn rớt (chăm lại)',ntvr)+row('Tỉ lệ lead \u2192 khám',bkTotal?pct(nkham,bkTotal).toFixed(0)+'%':'\u2014')};
+    const COC={ic:'cust',name:'Cọc',cls:' key',sub:'Đã chốt cọc',big:cocReached?cocReached.toLocaleString('vi-VN'):'\u2014',unit:'khách',
+      rows:row('Đang chờ mổ',ncoc)+row('Đã lên bàn mổ',nphau)};
+    const PHAU={ic:'rev',name:'Phẫu · DT',sub:'Đã mổ · doanh thu',big:nphau?nphau.toLocaleString('vi-VN'):'\u2014',unit:'ca',
+      rows:row('Doanh thu đã làm',tyS(rev))+row('ROAS · Chi/DS',`${spend?(rev/spend).toFixed(1):'\u2014'}x · ${rev?pct(spend,rev).toFixed(1):'\u2014'}%`)+row('AOV · trung vị',`${tr(mn)} · ${tr(med)}`),
+      by:`DT theo DV: <b>${svc}</b>`};
+    cards.push(LEAD,KHAM,COC,PHAU);
+    chips.push({v:`${msg?pct(bkTotal,msg).toFixed(1)+'%':'\u2014'}`,l:'tin nhắn \u2192 lead',f:'= lead ÷ tin nhắn (snapshot)'});
+    chips.push({v:`${bkTotal?pct(nkham,bkTotal).toFixed(0)+'%':'\u2014'}`,l:'lead \u2192 khám',f:'= khám ÷ lead',drop:'ns',dropt:`\u2212${chuaKham} chưa chốt lịch khám`});
+    chips.push({v:`${nkham?pct(cocReached,nkham).toFixed(0)+'%':'\u2014'}`,l:'khám \u2192 cọc',f:'= cọc ÷ khám',drop:'rot',dropt:`\u2212${ntvr} tư vấn rớt`});
+    chips.push({v:`${cocReached?pct(nphau,cocReached).toFixed(0)+'%':'\u2014'}`,l:'cọc \u2192 phẫu',f:'= phẫu ÷ cọc'});
+  }
+  const N=cards.length, COL=['var(--gold)','var(--jade)','var(--rose)'];
+  let H=`<div class="fnl" style="grid-template-columns:repeat(${N},minmax(0,1fr))">`;
+  H+=`<div class="fline" style="grid-column:1/-1;grid-row:2"><span class="fdot"></span><span class="fbar"></span><span class="fhd"></span></div>`;
+  cards.forEach((c,i)=>{
+    H+=cardHTML(c).replace('<div class="fcard',`<div style="grid-column:${i+1};grid-row:1" class="fcard`);
+    if(i<N-1){
+      const ch=chips[i],col=COL[i%3];
+      H+=`<div class="fchip" style="grid-column:${i+1}/span 2;grid-row:2"><span class="carr" style="color:${col}">↑</span><div class="fpill"><span class="cnum" style="background:${col}">${i+1}</span><div class="cbox"><div class="cv">${ch.v}</div><div class="cl">${ch.l}</div></div></div><div class="ffml">${ch.f}</div>${ch.drop?`<span class="fdrop ${ch.drop}">${ch.dropt}</span>`:''}</div>`;
+    }
+  });
+  H+='</div>';
+  H+=`<div class="note" style="margin-top:18px"><b>Đọc nhanh:</b> ${isng?`Ngoại khoa (nguồn BK Phẫu): ${bkTotal} lead \u2192 ${nkham} đã khám (rơi ${chuaKham} chưa chốt lịch khám) \u2192 ${cocReached} cọc (rơi ${ntvr} tư vấn rớt) \u2192 ${nphau} phẫu.`:`${msg.toLocaleString('vi-VN')} tin nhắn → ${booking} lịch hẹn → ${arrived} đến khám (rơi ${noshow} no-show ${pct(noshow,due).toFixed(1)}%) → ${chot} khách chốt (rơi ${rotNew} khách mới rớt).`} ${isng?'Nguồn BK Phẫu (snapshot); ad & tin nhắn Meta/TikTok.':'Booking/no-show/rớt từ LLV; ad & tin nhắn Meta/TikTok.'}</div>`;
+  return H;
 }
 function renderGates(){const b=document.getElementById('gateBox');if(!b)return;b.innerHTML=gatesDivNote()+gatesInner(GVIEW);}
 function selectGateRange(key,btn){
@@ -869,7 +957,7 @@ function overview(){
   return `
   ${insightCards('overview')}
   <div class="card" style="padding:20px 22px">
-    <h2>3 cửa quyết định</h2><div class="h-en">Quảng cáo → Tin nhắn → Khách → Giá trị · chọn khung thời gian</div>
+    <h2>Phễu vận hành</h2><div class="h-en">Quảng cáo → Tin nhắn → Lịch hẹn → Khách → Doanh thu · chọn khung thời gian</div>
     <div class="ranges" id="gateRanges">
       <button class="on" onclick="selectGateRange('mtd',this)">Tháng này</button>
       <button onclick="selectGateRange('today',this)">Hôm nay</button>
@@ -893,7 +981,6 @@ function overview(){
       <div class="rc"><div class="l">Cọc / pipeline</div><div class="val" style="font-family:'Inter',sans-serif;font-size:25px;font-weight:600;margin-top:6px">${tr(agg(MONTH,s=>s.deposit))}</div><div class="s">Tiền đặt trước cho dịch vụ tương lai</div></div>
       <div class="rc"><div class="l">Tổng cash-in</div><div class="val" style="font-family:'Inter',sans-serif;font-size:25px;font-weight:600;margin-top:6px">${tyS(agg(MONTH,s=>s.cash_in))}</div><div class="s">Hoàn tất + cọc = tiền thực thu trong kỳ</div></div>
     </div>
-    ${DIVFILTER!=='all'?`<div class="note" style="margin-top:10px">Khi lọc <b>${DIVFILTER}</b>: cọc theo khoa có thể nhỏ hơn tổng "Tất cả" \u2014 một phần cọc thuộc dịch vụ chưa map được khoa, không gán vào Nội/Ngoại.</div>`:''}
     ${dqChips()}
   </div>
   ${divProgress()}
@@ -1058,7 +1145,7 @@ function platform(){
       ${cmp('CTR',m.ctr!=null?m.ctr+'%':'\u2014 (không có click)',t.ctr!=null?t.ctr+'%':'\u2014')}
       ${cmp('Frequency',m.freq??'\u2014',t.freq??'\u2014')}
     </tbody></table>
-    <div class="note" style="margin-top:12px"><b>Lưu ý:</b> Meta \u201Clead mới\u201D = New messaging contacts; TikTok \u201Clead mới\u201D = Leads (DM). Hai con số này giờ cùng loại (người mới chớm nhắn tin) nên so sánh trực tiếp được; hội thoại (dòng trên) là cấp rộng hơn nên đếm riêng.</div></div>`;
+    <div class="note" style="margin-top:12px"><b>Lưu ý:</b> Meta \u201Clead mới\u201D = New messaging contacts; TikTok \u201Clead mới\u201D = Leads (DM). Đừng cộng \u201Cnew contacts\u201D của Meta với \u201Cconversations\u201D của TikTok \u2014 hai khái niệm khác nhau. TikTok rẻ hơn ở <b>hội thoại</b> nhưng đắt hơn ở <b>lead mới</b>.</div></div>`;
   // Block 2: platform x service
   const px=[];
   const psvc=(p,ads)=>ads.forEach(s=>px.push({plat:p,...s}));
@@ -1543,16 +1630,6 @@ function division(){
   </div>
   <div class="dvgrid">${items.map(card).join('')}</div>`;
 }
-function renderDqBanner(){
-  var b=document.getElementById('dqbanner'); if(!b) return;
-  var w=((DATA.dataquality||{}).warnings)||[];
-  if(!w.length){ b.innerHTML=''; b.style.display='none'; return; }
-  b.style.display='block';
-  b.innerHTML='<div style="margin:0 0 14px;padding:12px 16px;border-radius:12px;background:var(--rose-soft,#FCE8E6);border:1px solid var(--rose,#D64545);color:var(--rose,#9B1C1C);font-size:13.5px;line-height:1.5">'
-    +'<b>\u26A0\uFE0F Cảnh báo dữ liệu</b><ul style="margin:6px 0 0;padding-left:20px">'
-    +w.map(function(x){return '<li>'+x+'</li>';}).join('')
-    +'</ul></div>';
-}
 function show(p){
   window.__page=p;
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
@@ -1562,7 +1639,6 @@ function show(p){
   const el=document.getElementById(p); el.innerHTML=R[p](); el.classList.add('active');
   document.getElementById('ptitle').textContent=titles[p][0];
   document.getElementById('psub').textContent=titles[p][1];
-  renderDqBanner();
   hideTip();
   if(p==='overview'){ VIEW=winSlice('mtd'); GVIEW=winSlice('mtd'); if(!GVIEW.length)GVIEW=winSlice('mtd'); renderChart(); renderGates(); }
   // animate bars

@@ -105,7 +105,14 @@ B.loc[B['bill'].isin(_realized),['is_deposit','is_rev','is_zero']]=False
 # division mỗi bill: ngoại nếu sale phẫu hoặc dịch vụ chính thuộc ngoại; còn lại theo dịch vụ
 def _billdiv(r):
     if r['is_phau']: return 'Ngoại khoa'
-    return _divof(r['primary'])
+    d=_divof(r['primary'])
+    if d: return d
+    if r['is_zero']:                              # khach 0d (tham kham): suy khoa tu DV tu van, mac dinh Noi
+        for g in sorted(r['sgroups'] or []):
+            dd=_divof(g)
+            if dd: return dd
+        return 'Nội khoa'
+    return None
 B['division']=B.apply(_billdiv,axis=1)
 
 def _div_for(g,accdiv): d=DIVMAP.get(g); return d if d else accdiv   # UNMAPPED ad → theo division của account
@@ -168,7 +175,7 @@ def dayrec(d):
         for g,v in src.items(): ms[g]=ms.get(g,0)+v
     sp=md.get(d,{}).get('spend',0)+td.get(d,{}).get('spend',0)
     return dict(date=d,gross=(revenue+deposit),operating=revenue,revenue=revenue,deposit=deposit,cash_in=revenue+deposit,
-        customers=int(bb.has_cust.sum()),arrived=int(bb.has_cust.sum()),paying=int(bb.is_rev.sum()),coc=int(bb.is_deposit.sum()),zero=int(bb.is_zero.sum()),
+        customers=int(bb.has_cust.sum()),arrived=int(bb.has_cust.sum()),paying=int(bb.is_rev.sum()),coc=int(bb.is_deposit.sum()),coc_new=int(((bb.is_deposit)&(bb.ctype=='NEW')).sum()),zero=int(bb.is_zero.sum()),
         new=int(((bb.is_rev)&(bb.ctype=='NEW')).sum()),tk=int(((bb.is_rev)&(bb.ctype=='TK')).sum()),
         median_bill=float(st.median(pv)) if pv else 0.0,mean_bill=float(st.mean(pv)) if pv else 0.0,
         bill_values=pv,rev_by_service=rbs,deposit_by_service={k:int(v) for k,v in dep_svc.items()},
@@ -512,13 +519,13 @@ def dayrec_div(d,division):
     _rbd=B[(B.date==d)&(B.is_rev)&(B['division']==division)]; _xsd=_rbd[_rbd['distinct']>=2]
     # AUDIT (16/6 v2): dem NGUOI theo BILL-LEVEL theo khoa chinh (chuan: tien=line, nguoi=bill) -> sua zero=0 & customers/paying thieu khach
     _bd=B[(B.date==d)&(B['division']==division)]
-    _cust=int(_bd.has_cust.sum()); _pay=int(_bd.is_rev.sum()); _zero=int(_bd.is_zero.sum()); _coc=int(_bd.is_deposit.sum())
+    _cust=int(_bd.has_cust.sum()); _pay=int(_bd.is_rev.sum()); _zero=int(_bd.is_zero.sum()); _coc=int(_bd.is_deposit.sum()); _cocnew=int(((_bd.is_deposit)&(_bd.ctype=='NEW')).sum())
     _pvb=[round(float(x)*VND) for x in _bd[_bd.is_rev]['gross'].tolist()]   # gia tri day du moi khach paying (bill-level)
     _newn=int(((_bd.is_rev)&(_bd.ctype=='NEW')).sum()); _tkn=int(((_bd.is_rev)&(_bd.ctype=='TK')).sum())
     _newb=set(bb[bb.ctype=='NEW']['bill']); _tkb=set(bb[bb.ctype=='TK']['bill'])
     _revnew=_ld[_ld.billno.isin(_newb)]['rev'].sum()*VND; _revtk=_ld[_ld.billno.isin(_tkb)]['rev'].sum()*VND
     return dict(date=d,gross=revenue,operating=revenue,revenue=revenue,deposit=int(round(_depv)),cash_in=revenue+_depv,
-        customers=_cust,arrived=_cust,paying=_pay,coc=_coc,zero=_zero,
+        customers=_cust,arrived=_cust,paying=_pay,coc=_coc,coc_new=_cocnew,zero=_zero,
         new=_newn,tk=_tkn,
         median_bill=float(st.median(_pvb)) if _pvb else 0.0,mean_bill=float(st.mean(_pvb)) if _pvb else 0.0,
         bill_values=_pvb,rev_by_service=rbs,deposit_by_service={k:int(round(v)) for k,v in _depsvc.items()},
@@ -602,6 +609,12 @@ def build_bkphau():
         n_active=int(sum(1 for l in leads if l['stage'] in ACTIVE)),
         n_nuoi=int(sum(1 for l in leads if l['stage'] in NUOI)),
         n_at_risk=int(sum(1 for l in leads if l['at_risk'])),
+        days_pending_avg=int(round(sum(l['days_pending'] for l in leads if l['stage'] in ACTIVE and l['days_pending'] is not None)/max(1,sum(1 for l in leads if l['stage'] in ACTIVE and l['days_pending'] is not None)))),
+        by_service=_cnt([(l['service'] or '(chưa rõ)') for l in leads if l['stage'] in ACTIVE]),
+        n_kham=int(sum(1 for l in leads if l['master'])),
+        n_tuvanrot=int(sum(1 for l in leads if l['master'] and l['stage']=='Chăm thêm')),
+        n_coc=int(by_stage.get('Cọc',0)),
+        n_phau=int(by_stage.get('Phẫu thuật',0)),
         leads=leads)
 bkphau=build_bkphau()
 
@@ -615,22 +628,24 @@ def build_llv():
         return None
     if lv is None or not len(lv): return None
     today_ts=pd.Timestamp(date.today())
-    def _empty(): return {'booking':0,'den':0,'rot':0,'noshow':0,'doi':0,'pending':0}
-    def _add(slot,stt):
+    def _empty(): return {'booking':0,'den':0,'rot':0,'noshow':0,'doi':0,'pending':0,'den_new':0}
+    def _add(slot,stt,isnew=False):
         slot['booking']+=1
         if stt=='arrived': slot['den']+=1
         elif stt=='rot': slot['den']+=1; slot['rot']+=1
         elif stt=='noshow': slot['noshow']+=1
         elif stt=='doi': slot['doi']+=1
         elif stt=='pending': slot['pending']+=1
+        if isnew and stt in ('arrived','rot'): slot['den_new']+=1
     by_day={}; by_sale={}; tot={'arrived':0,'rot':0,'noshow':0,'doi':0,'pending':0}
     for _,r in lv.iterrows():
         stt=r['status']; hen=r['ngay_hen']
+        isnew=str(r['loai_khach']).strip().lower()=='new'
         # lịch hẹn ≥ hôm nay mà trạng thái trống (noshow) = CHƯA tới hạn, không tính no-show
         if stt=='noshow' and pd.notna(hen) and hen>=today_ts: stt='pending'
         tot[stt]=tot.get(stt,0)+1
-        if pd.notna(hen): _add(by_day.setdefault(hen.date().isoformat(),_empty()),stt)
-        _add(by_sale.setdefault(r['sale'] or '(trống)',_empty()),stt)
+        if pd.notna(hen): _add(by_day.setdefault(hen.date().isoformat(),_empty()),stt,isnew)
+        _add(by_sale.setdefault(r['sale'] or '(trống)',_empty()),stt,isnew)
     for s in by_sale.values():
         base=s['den']+s['noshow']                      # mẫu số: lịch đã tới hạn (bỏ dời & pending)
         s['noshow_rate']=round(s['noshow']/base,3) if base else 0.0
@@ -638,6 +653,28 @@ def build_llv():
         by_status=dict(booking=int(len(lv)),den=tot['arrived']+tot['rot'],rot=tot['rot'],noshow=tot['noshow'],doi=tot['doi'],pending=tot['pending']),
         by_day=by_day,by_sale=by_sale)
 llv=build_llv()
+
+# ===== ROT LLV (Nội khoa, dòng chảy theo ngày) vào series cho phễu vận hành =====
+# Ngoại khoa KHÔNG dùng LLV: số lead nuôi là snapshot -> dashboard đọc thẳng block bkphau.
+def _inject_funnel(series, series_div, llv):
+    lday = (llv or {}).get('by_day', {}) or {}
+    def _set_llv(rec):
+        x = lday.get(rec['date'], {})
+        rec['booking']=x.get('booking',0); rec['den']=x.get('den',0)
+        rec['noshow']=x.get('noshow',0);   rec['rot']=x.get('rot',0); rec['doi']=x.get('doi',0)
+    for rec in series_div.get('Nội khoa', []): _set_llv(rec)
+    for rec in series:                         _set_llv(rec)        # 'all' = LLV (Nội)
+    for rec in series_div.get('Ngoại khoa', []):                    # Ngoại: 0 (đọc snapshot bkphau)
+        for k in ('booking','den','noshow','rot','doi'): rec[k]=0
+_inject_funnel(series, series_div, llv)
+
+# inject den_new (den kham khach moi) -> pheu Noi chip4 new->new
+if llv and isinstance(llv,dict) and llv.get('by_day'):
+    _bdn=llv['by_day']
+    for _s in series: _s['den_new']=_bdn.get(_s.get('date'),{}).get('den_new',0)
+    for _dk,_lst in series_div.items():
+        _z=('Ngo' in _dk)
+        for _s in _lst: _s['den_new']=0 if _z else _bdn.get(_s.get('date'),{}).get('den_new',0)
 
 bundle=dict(period=dict(start=days[0],end=days[-1],n_days=len(days)),today=days[-1],system_today=TODAY,
     week_median_bill=float(st.median(allpv)) if allpv else 0,week_mean_bill=float(st.mean(allpv)) if allpv else 0,
