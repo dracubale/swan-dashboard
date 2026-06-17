@@ -809,7 +809,7 @@ function gatesInner(arr){
   const cnew=agg(arr,s=>s.new||0),dennew=agg(arr,s=>s.den_new||0);
   const cocnew=agg(arr,s=>s.coc_new||0);
   const rotNew=Math.max(0,dennew-cnew-cocnew), chiTK=Math.max(0,arrived-paying-coc-rotNew);
-  const rev=agg(arr,s=>s.operating),dep=agg(arr,s=>s.deposit),xrev=agg(arr,s=>s.crosssell_rev||0);
+  const rev=agg(arr,s=>s.revenue),dep=agg(arr,s=>s.deposit),xrev=agg(arr,s=>s.crosssell_rev||0);
   const bt=agg(arr,s=>s.bills_total||0),bm=agg(arr,s=>s.bills_multi||0),attach=bt?bm/bt*100:0;
   const vals=poolVals(arr),med=median(vals),mn=mean(vals);
   const revnew=agg(arr,s=>s.rev_new||0),revtk=agg(arr,s=>s.rev_tk||0);
@@ -960,7 +960,7 @@ function overview(){
   return `
   ${insightCards('overview')}
   <div class="card" style="padding:20px 22px">
-    <h2>Phễu vận hành</h2><div class="h-en">Quảng cáo → Tin nhắn → Lịch hẹn → Khách → Doanh thu · chọn khung thời gian</div>
+    <h2>Phễu vận hành</h2><div class="h-en">Quảng cáo → Tin nhắn → Lịch hẹn → Khách → Doanh thu · chọn khung thời gian · tính trên ngày đã chốt (chưa gồm hôm nay)</div>
     <div class="ranges" id="gateRanges">
       <button class="on" onclick="selectGateRange('mtd',this)">Tháng này</button>
       <button onclick="selectGateRange('today',this)">Hôm nay</button>
