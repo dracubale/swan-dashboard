@@ -208,7 +208,7 @@ def render_dashboard(user, role):
     landing = pages[0] if pages else "overview"
     # QUAN TRỌNG: thay DATA nhúng sẵn (fallback) bằng bundle đã lọc, nếu không xem source là lộ hết.
     filtered = json.dumps(filter_bundle(role), ensure_ascii=False).replace("</", "<\\/")
-    html, n = _EMBED.subn("let DATA = " + filtered + r";\1", html, count=1)
+    html, n = _EMBED.subn(lambda m: "let DATA = " + filtered + ";" + m.group(1), html, count=1)
     if n == 0:  # không tìm thấy khối nhúng -> chặn an toàn, không serve dữ liệu thừa
         html = html.replace("let DATA =", "let DATA = {} || ", 1)
     cfg = {"pages": pages, "user": user, "role": role,
