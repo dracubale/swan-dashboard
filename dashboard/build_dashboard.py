@@ -850,7 +850,7 @@ function gatesInner(arr){
     cards.push(LICH,KHACH,DT);
     chips.push({v:`${pct(booking,msg).toFixed(1)}%`,l:'tin nhắn → lịch hẹn',f:'= lịch hẹn ÷ tin nhắn',tip:`${booking} lịch hẹn ÷ ${msg.toLocaleString('vi-VN')} tin nhắn = ${pct(booking,msg).toFixed(1)}%`});
     chips.push({v:`${pct(arrived,due).toFixed(0)}%`,l:'lịch hẹn → đến khám',f:'= đến khám ÷ lịch đã tới hạn',tip:`đến khám ${arrived} ÷ đã tới hạn ${due} = ${pct(arrived,due).toFixed(1)}%<br>đã tới hạn ${due} = lịch hẹn ${booking} − dời ${doi} − chưa tới hạn ${pending}<br>no-show ${noshow} (${pct(noshow,due).toFixed(1)}%)`,drop:'ns',dropt:`−${noshow} no-show (${pct(noshow,due).toFixed(1)}%)`});
-    chips.push({v:`${pct(cnew,dennew).toFixed(0)}%`,l:'đến khám → chốt (khách mới)',f:'= chốt mới ÷ đến khám mới',tip:`chốt mới ${cnew} ÷ đến khám mới ${dennew} = ${pct(cnew,dennew).toFixed(1)}%<br>đến khám mới ${dennew} = chốt ${cnew} + rớt ${rotNew} + cọc ${cocnew}`,drop:'rot',dropt:`đến khám mới ${dennew}/${arrived} · ${rotNew} rớt · ${cocnew} cọc`});
+    chips.push({v:`${pct(cnew,dennew).toFixed(0)}%`,l:'đến khám → khách chốt',f:'= chốt mới ÷ đến khám mới',tip:`chốt mới ${cnew} ÷ đến khám mới ${dennew} = ${pct(cnew,dennew).toFixed(1)}%<br>đến khám mới ${dennew} = chốt ${cnew} + rớt ${rotNew} + cọc ${cocnew}`,drop:'rot',dropt:`đến khám mới ${dennew}/${arrived} · ${rotNew} rớt · ${cocnew} cọc`});
   } else {
     const LEAD={ic:'lead',name:'Lead',cls:' lead',sub:'Đang quản lý · nhu cầu thật',big:bkTotal?bkTotal.toLocaleString('vi-VN'):'\u2014',unit:'lead',
       rows:row('Giá kỳ vọng (pipeline)',leadval?tyS(leadval):'\u2014')+row('Lead nguy cơ (treo lâu)',leadrisk||'\u2014')+row('Ngày treo TB',ldays?`${ldays.toFixed(0)} ngày`:'\u2014')+row('Chưa chốt lịch khám',chuaKham),
@@ -859,8 +859,8 @@ function gatesInner(arr){
       rows:row('Tư vấn rớt (chăm lại)',ntvr)+row('Tỉ lệ lead \u2192 khám',bkTotal?pct(nkham,bkTotal).toFixed(0)+'%':'\u2014')};
     const COC={ic:'cust',name:'Cọc',cls:' key',sub:'Đã chốt cọc',big:cocReached?cocReached.toLocaleString('vi-VN'):'\u2014',unit:'khách',
       rows:row('Đang chờ mổ',ncoc)+row('Đã lên bàn mổ',nphau)};
-    const PHAU={ic:'rev',name:'Phẫu · DT',sub:'Đã mổ · doanh thu',big:nphau?nphau.toLocaleString('vi-VN'):'\u2014',unit:'ca',
-      rows:row('Doanh thu đã làm',tyS(rev))+row('ROAS · Chi/DS',`${spend?(rev/spend).toFixed(1):'\u2014'}x · ${rev?pct(spend,rev).toFixed(1):'\u2014'}%`)+row('AOV · trung vị',`${tr(mn)} · ${tr(med)}`),
+    const PHAU={ic:'rev',name:'Doanh thu',sub:'Chưa gồm hôm nay',big:nphau?nphau.toLocaleString('vi-VN'):'\u2014',unit:'ca',
+      rows:row('Chưa gồm hôm nay',tyS(rev))+row('ROAS · Chi/DS',`${spend?(rev/spend).toFixed(1):'\u2014'}x · ${rev?pct(spend,rev).toFixed(1):'\u2014'}%`)+row('AOV · trung vị',`${tr(mn)} · ${tr(med)}`),
       by:`DT theo DV: <b>${svc}</b>`};
     cards.push(LEAD,KHAM,COC,PHAU);
     chips.push({v:`${msg?pct(bkTotal,msg).toFixed(1)+'%':'\u2014'}`,l:'tin nhắn \u2192 lead',f:'= lead ÷ tin nhắn (snapshot)',tip:`lead ${bkTotal} ÷ ${msg.toLocaleString('vi-VN')} tin nhắn = ${msg?pct(bkTotal,msg).toFixed(1):'—'}%<br>lead là snapshot (không theo khung thời gian)`});
