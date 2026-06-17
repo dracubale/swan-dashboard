@@ -168,7 +168,7 @@ def dayrec(d):
         for g,v in src.items(): ms[g]=ms.get(g,0)+v
     sp=md.get(d,{}).get('spend',0)+td.get(d,{}).get('spend',0)
     return dict(date=d,gross=(revenue+deposit),operating=revenue,revenue=revenue,deposit=deposit,cash_in=revenue+deposit,
-        customers=int(bb.has_cust.sum()),paying=int(bb.is_rev.sum()),coc=int(bb.is_deposit.sum()),zero=int(bb.is_zero.sum()),
+        customers=int(bb.has_cust.sum()),arrived=int(bb.has_cust.sum()),paying=int(bb.is_rev.sum()),coc=int(bb.is_deposit.sum()),zero=int(bb.is_zero.sum()),
         new=int(((bb.is_rev)&(bb.ctype=='NEW')).sum()),tk=int(((bb.is_rev)&(bb.ctype=='TK')).sum()),
         median_bill=float(st.median(pv)) if pv else 0.0,mean_bill=float(st.mean(pv)) if pv else 0.0,
         bill_values=pv,rev_by_service=rbs,deposit_by_service={k:int(v) for k,v in dep_svc.items()},
@@ -510,13 +510,18 @@ def dayrec_div(d,division):
         for _g in _gdiv: _depsvc[_g]=_depsvc.get(_g,0)+_share/len(_gdiv)
     # AUDIT (16/6): ban cheo theo BILL-LEVEL (khop trang Ban cheo: revB[division==d], tong distinct>=2)
     _rbd=B[(B.date==d)&(B.is_rev)&(B['division']==division)]; _xsd=_rbd[_rbd['distinct']>=2]
+    # AUDIT (16/6 v2): dem NGUOI theo BILL-LEVEL theo khoa chinh (chuan: tien=line, nguoi=bill) -> sua zero=0 & customers/paying thieu khach
+    _bd=B[(B.date==d)&(B['division']==division)]
+    _cust=int(_bd.has_cust.sum()); _pay=int(_bd.is_rev.sum()); _zero=int(_bd.is_zero.sum()); _coc=int(_bd.is_deposit.sum())
+    _pvb=[round(float(x)*VND) for x in _bd[_bd.is_rev]['gross'].tolist()]   # gia tri day du moi khach paying (bill-level)
+    _newn=int(((_bd.is_rev)&(_bd.ctype=='NEW')).sum()); _tkn=int(((_bd.is_rev)&(_bd.ctype=='TK')).sum())
     _newb=set(bb[bb.ctype=='NEW']['bill']); _tkb=set(bb[bb.ctype=='TK']['bill'])
     _revnew=_ld[_ld.billno.isin(_newb)]['rev'].sum()*VND; _revtk=_ld[_ld.billno.isin(_tkb)]['rev'].sum()*VND
     return dict(date=d,gross=revenue,operating=revenue,revenue=revenue,deposit=int(round(_depv)),cash_in=revenue+_depv,
-        customers=npay,paying=npay,coc=_ccount,zero=0,
-        new=int(((bb.is_rev)&(bb.ctype=='NEW')).sum()),tk=int(((bb.is_rev)&(bb.ctype=='TK')).sum()),
-        median_bill=float(st.median(pv)) if pv else 0.0,mean_bill=float(st.mean(pv)) if pv else 0.0,
-        bill_values=pv,rev_by_service=rbs,deposit_by_service={k:int(round(v)) for k,v in _depsvc.items()},
+        customers=_cust,arrived=_cust,paying=_pay,coc=_coc,zero=_zero,
+        new=_newn,tk=_tkn,
+        median_bill=float(st.median(_pvb)) if _pvb else 0.0,mean_bill=float(st.mean(_pvb)) if _pvb else 0.0,
+        bill_values=_pvb,rev_by_service=rbs,deposit_by_service={k:int(round(v)) for k,v in _depsvc.items()},
         bills_total=int(len(_rbd)),bills_multi=int(len(_xsd)),crosssell_rev=int(round(_xsd['gross'].sum()*VND)),rev_new=int(round(_revnew)),rev_tk=int(round(_revtk)),
         meta_spend=_msp,tk_spend=_tsp,spend=_msp+_tsp,meta_msg=int(round(_mmsg)),tk_msg=int(round(_tmsg)),msg_by_service=ms,
         roas=round(revenue/(_msp+_tsp),1) if (_msp+_tsp) else 0)
@@ -539,10 +544,105 @@ dq=dict(bills_no_e1=int((B.n_e1==0).sum()),bills_multi_e1=int((B.n_e1>1).sum()),
 
 allpv=[v for s in series for v in s['bill_values']]
 dep_total=B[B.is_deposit]['gross'].sum()*VND
+
+# ===== BK Phẫu (lead pipeline Ngoại khoa) =====
+def _bk_price(note):
+    """Doc gia ky vong tu 'Nội dung tư vấn': lay so 'Xtr'/'X triệu' lon nhat -> VND."""
+    s=str(note or '')
+    vals=[]
+    for m in re.finditer(r'(\d+(?:[.,]\d+)?)\s*(?:tr|triệu|trieu)',s,flags=re.IGNORECASE):
+        try: vals.append(float(m.group(1).replace(',','.')))
+        except ValueError: pass
+    return int(max(vals)*1_000_000) if vals else 0
+
+def build_bkphau():
+    try:
+        import bkphau_sheet
+        bk=bkphau_sheet.load_bkphau_df()
+    except Exception as e:
+        _warn.append('BK Phẫu: không đọc được sheet (%s)' % e)
+        return None
+    today_ts=pd.Timestamp(date.today())
+    ACTIVE={'booked','Chăm thêm','Cọc'}      # lead còn trong pipeline (chưa phẫu)
+    NUOI={'booked','Chăm thêm'}              # đang nuôi (chưa cọc)
+    leads=[]
+    for _,r in bk.iterrows():
+        hen=r.get('_ngay_hen'); 
+        dp=int((today_ts-hen).days) if pd.notna(hen) else None
+        stage=r.get('_stage','booked')
+        gia=_bk_price(r.get('Nội dung tư vấn'))
+        leads.append(dict(
+            name=(None if pd.isna(r.get('Tên KH')) else str(r.get('Tên KH')).strip()),
+            phone=str(r.get('_phone') or ''),
+            sale=(None if pd.isna(r.get('Telesale')) else str(r.get('Telesale')).strip()),
+            source=(None if pd.isna(r.get('Nguồn')) else str(r.get('Nguồn')).strip()),
+            service=(None if pd.isna(r.get('Dịch vụ')) else str(r.get('Dịch vụ')).strip()),
+            master=(None if pd.isna(r.get('MASTER')) else str(r.get('MASTER')).strip()),
+            stage=stage,
+            ngay_hen=(None if pd.isna(hen) else hen.date().isoformat()),
+            ngay_chot=(None if pd.isna(r.get('_ngay_chot')) else r.get('_ngay_chot').date().isoformat()),
+            doanhthu=int(r.get('_doanhthu') if pd.notna(r.get('_doanhthu')) else 0),
+            expected_price=gia,
+            note=(None if pd.isna(r.get('Nội dung tư vấn')) else str(r.get('Nội dung tư vấn')).strip()),
+            days_pending=dp,
+            at_risk=bool(stage in NUOI and dp is not None and dp>=7)))   # hẹn đã qua ≥7 ngày mà chưa cọc
+    def _cnt(seq): 
+        c={}; 
+        for x in seq: c[x]=c.get(x,0)+1
+        return c
+    by_stage=_cnt([l['stage'] for l in leads])
+    sales={}
+    for l in leads:
+        s=l['sale'] or '(trống)'
+        d=sales.setdefault(s,{'total':0,'booked':0,'Chăm thêm':0,'Cọc':0,'Phẫu thuật':0,'phau_rev':0})
+        d['total']+=1; d[l['stage']]=d.get(l['stage'],0)+1
+        if l['stage']=='Phẫu thuật': d['phau_rev']+=l['doanhthu']
+    return dict(as_of=TODAY,total_leads=len(leads),by_stage=by_stage,by_sale=sales,
+        pipeline_value=int(sum(l['expected_price'] for l in leads if l['stage'] in ACTIVE)),
+        n_active=int(sum(1 for l in leads if l['stage'] in ACTIVE)),
+        n_nuoi=int(sum(1 for l in leads if l['stage'] in NUOI)),
+        n_at_risk=int(sum(1 for l in leads if l['at_risk'])),
+        leads=leads)
+bkphau=build_bkphau()
+
+# ===== LLV (booking / vận hành: đến / no-show / rớt theo ngày & theo sale) =====
+def build_llv():
+    try:
+        import llv_sheet
+        lv=llv_sheet.load_llv_df()
+    except Exception as e:
+        _warn.append('LLV: không đọc được sheet (%s)' % e)
+        return None
+    if lv is None or not len(lv): return None
+    today_ts=pd.Timestamp(date.today())
+    def _empty(): return {'booking':0,'den':0,'rot':0,'noshow':0,'doi':0,'pending':0}
+    def _add(slot,stt):
+        slot['booking']+=1
+        if stt=='arrived': slot['den']+=1
+        elif stt=='rot': slot['den']+=1; slot['rot']+=1
+        elif stt=='noshow': slot['noshow']+=1
+        elif stt=='doi': slot['doi']+=1
+        elif stt=='pending': slot['pending']+=1
+    by_day={}; by_sale={}; tot={'arrived':0,'rot':0,'noshow':0,'doi':0,'pending':0}
+    for _,r in lv.iterrows():
+        stt=r['status']; hen=r['ngay_hen']
+        # lịch hẹn ≥ hôm nay mà trạng thái trống (noshow) = CHƯA tới hạn, không tính no-show
+        if stt=='noshow' and pd.notna(hen) and hen>=today_ts: stt='pending'
+        tot[stt]=tot.get(stt,0)+1
+        if pd.notna(hen): _add(by_day.setdefault(hen.date().isoformat(),_empty()),stt)
+        _add(by_sale.setdefault(r['sale'] or '(trống)',_empty()),stt)
+    for s in by_sale.values():
+        base=s['den']+s['noshow']                      # mẫu số: lịch đã tới hạn (bỏ dời & pending)
+        s['noshow_rate']=round(s['noshow']/base,3) if base else 0.0
+    return dict(as_of=TODAY,total=int(len(lv)),
+        by_status=dict(booking=int(len(lv)),den=tot['arrived']+tot['rot'],rot=tot['rot'],noshow=tot['noshow'],doi=tot['doi'],pending=tot['pending']),
+        by_day=by_day,by_sale=by_sale)
+llv=build_llv()
+
 bundle=dict(period=dict(start=days[0],end=days[-1],n_days=len(days)),today=days[-1],system_today=TODAY,
     week_median_bill=float(st.median(allpv)) if allpv else 0,week_mean_bill=float(st.mean(allpv)) if allpv else 0,
     totals=dict(revenue_completed=int(round(completed)),deposit=int(round(dep_total)),cash_in=int(round(completed+dep_total))),
-    series=series,services=services,crosssell=crosssell,newtk=newtk,platform=plat,platform_div=platform_div,platform_extra=platform_extra,dataquality=dq,sales=sales,masters=masters,sales_div=sales_div,masters_div=masters_div,divisions=divblock,crosssell_div=crosssell_div,series_div=series_div)
+    series=series,services=services,crosssell=crosssell,newtk=newtk,platform=plat,platform_div=platform_div,platform_extra=platform_extra,dataquality=dq,sales=sales,masters=masters,sales_div=sales_div,masters_div=masters_div,divisions=divblock,crosssell_div=crosssell_div,series_div=series_div,bkphau=bkphau,llv=llv)
 json.dump(bundle,open('bundle.json','w'),ensure_ascii=False)
 
 print('=== VALIDATION ===')
