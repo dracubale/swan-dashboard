@@ -117,8 +117,8 @@ B['division']=B.apply(_billdiv,axis=1)
 
 def _div_for(g,accdiv): d=DIVMAP.get(g); return d if d else accdiv   # UNMAPPED ad → theo division của account
 def meta():
-    if not META_FILES: return {},{},{},{},{},0.0,None
-    daily={}; msv={}; spv={}; spd_div={}; msd_div={}; tot=0.0; unmt=0.0; latest=None
+    if not META_FILES: return {},{},{},{},{},0.0,None,{}
+    daily={}; msv={}; spv={}; spd_div={}; msd_div={}; spv_day={}; tot=0.0; unmt=0.0; latest=None
     for path,accdiv in META_FILES:
         mf=pd.read_excel(path,sheet_name='Formatted Report',header=2).rename(columns=lambda c:str(c).strip())
         mf['Day']=mf['Day'].ffill()
@@ -132,11 +132,12 @@ def meta():
             if v>0: msv.setdefault(d,{}); msv[d][g]=msv[d].get(g,0)+int(round(v)); msd_div.setdefault(d,{}); msd_div[d][_div_for(g,accdiv)]=msd_div[d].get(_div_for(g,accdiv),0)+v
         for (d,g),v in ads.groupby(['d','g'])['sp'].sum().items():
             spd_div.setdefault(d,{}); spd_div[d][_div_for(g,accdiv)]=spd_div[d].get(_div_for(g,accdiv),0)+float(v)
+            spv_day.setdefault(d,{}); spv_day[d][g]=spv_day[d].get(g,0)+float(v)
         for g,v in ads.groupby('g')['sp'].sum().items(): spv[g]=spv.get(g,0)+float(v)
         tot+=float(ads['sp'].sum()); unmt+=float(ads[ads.g=='UNMAPPED']['sp'].sum())
-    return daily,msv,spv,spd_div,msd_div,(unmt/max(1e-9,tot)*100),(max(daily) if daily else None)
+    return daily,msv,spv,spd_div,msd_div,(unmt/max(1e-9,tot)*100),(max(daily) if daily else None),spv_day
 def tiktok():
-    if TKFILE is None: return {},{},{},{},{},0.0,None
+    if TKFILE is None: return {},{},{},{},{},0.0,None,{}
     tf=pd.read_excel(TKFILE,sheet_name='Sheet1').rename(columns=lambda c:str(c).strip())
     tf=tf[~tf['By Day'].astype(str).str.contains('Total',na=False)]; tf=tf[tf['Ad name'].notna()]
     tf['Cost']=pd.to_numeric(tf['Cost'],errors='coerce').fillna(0)
@@ -145,16 +146,17 @@ def tiktok():
     _tkmsgcol='Leads (TikTok direct message)' if 'Leads (TikTok direct message)' in tf.columns else 'Conversations (TikTok direct message)'
     tf['msg']=pd.to_numeric(tf[_tkmsgcol],errors='coerce').fillna(0)
     tf['g']=tf['Ad name'].apply(classify); tf['d']=tf['By Day'].astype(str); tf=tf[tf['d']<=REVMAX]
-    daily={}; msv={}; spv={}; spd_div={}; msd_div={}
+    daily={}; msv={}; spv={}; spd_div={}; msd_div={}; spv_day={}
     for d,sub in tf.groupby('d'): daily[d]={'spend':float(sub['Cost'].sum()),'msg':float(sub['msg'].sum())}
     for (d,g),v in tf.groupby(['d','g'])['msg'].sum().items():
         if v>0: msv.setdefault(d,{}); msv[d][g]=msv[d].get(g,0)+int(round(v)); msd_div.setdefault(d,{}); msd_div[d][TK_DIV]=msd_div[d].get(TK_DIV,0)+v
     for (d,g),v in tf.groupby(['d','g'])['Cost'].sum().items():
         spd_div.setdefault(d,{}); spd_div[d][TK_DIV]=spd_div[d].get(TK_DIV,0)+float(v)
+        spv_day.setdefault(d,{}); spv_day[d][g]=spv_day[d].get(g,0)+float(v)
     for g,v in tf.groupby('g')['Cost'].sum().items(): spv[g]=spv.get(g,0)+float(v)
     tot=float(tf['Cost'].sum()); unmapped=float(tf[tf.g=='UNMAPPED']['Cost'].sum())/max(1e-9,tot)*100
-    return daily,msv,spv,spd_div,msd_div,unmapped,(max(daily) if daily else None)
-md,mms,mspv,mspd,mmsd,m_unmap,m_latest=meta(); td,tms,tspv,tspd,tmsd,t_unmap,t_latest=tiktok()
+    return daily,msv,spv,spd_div,msd_div,unmapped,(max(daily) if daily else None),spv_day
+md,mms,mspv,mspd,mmsd,m_unmap,m_latest,mspvd=meta(); td,tms,tspv,tspd,tmsd,t_unmap,t_latest,tspvd=tiktok()
 def spend_div_day(d,division): return mspd.get(d,{}).get(division,0)+tspd.get(d,{}).get(division,0)
 def msg_div_day(d,division): return mmsd.get(d,{}).get(division,0)+tmsd.get(d,{}).get(division,0)
 
@@ -173,6 +175,9 @@ def dayrec(d):
     xs=rev_bills[rev_bills['distinct']>=2]; ms={}
     for src in (mms.get(d,{}),tms.get(d,{})):
         for g,v in src.items(): ms[g]=ms.get(g,0)+v
+    sbs={}
+    for src in (mspvd.get(d,{}),tspvd.get(d,{})):
+        for g,v in src.items(): sbs[g]=sbs.get(g,0)+int(round(v))
     sp=md.get(d,{}).get('spend',0)+td.get(d,{}).get('spend',0)
     return dict(date=d,gross=(revenue+deposit),operating=revenue,revenue=revenue,deposit=deposit,cash_in=revenue+deposit,
         customers=int(bb.has_cust.sum()),arrived=int(bb.has_cust.sum()),paying=int(bb.is_rev.sum()),coc=int(bb.is_deposit.sum()),coc_new=int(((bb.is_deposit)&(bb.ctype=='NEW')).sum()),zero=int(bb.is_zero.sum()),
@@ -182,7 +187,7 @@ def dayrec(d):
         bills_total=int(bb.is_rev.sum()),bills_multi=int(len(xs)),crosssell_rev=int(round(xs['gross'].sum()*VND)),
         rev_new=int(round(rev_bills[rev_bills.ctype=='NEW']['gross'].sum()*VND)),rev_tk=int(round(rev_bills[rev_bills.ctype=='TK']['gross'].sum()*VND)),
         meta_spend=md.get(d,{}).get('spend',0),tk_spend=td.get(d,{}).get('spend',0),spend=sp,
-        meta_msg=md.get(d,{}).get('msg',0),tk_msg=td.get(d,{}).get('msg',0),msg_by_service=ms,
+        meta_msg=md.get(d,{}).get('msg',0),tk_msg=td.get(d,{}).get('msg',0),msg_by_service=ms,spend_by_service=sbs,
         roas=round(revenue/sp,1) if sp else 0)
 series=[dayrec(d) for d in days]
 
@@ -502,6 +507,10 @@ def dayrec_div(d,division):
     for src in (mms.get(d,{}),tms.get(d,{})):
         for g,v in src.items():
             if DIVMAP.get(g)==division: ms[g]=ms.get(g,0)+v
+    sbs={}
+    for src in (mspvd.get(d,{}),tspvd.get(d,{})):
+        for g,v in src.items():
+            if DIVMAP.get(g)==division: sbs[g]=sbs.get(g,0)+int(round(v))
     # AUDIT (16/6): tach rieng Meta vs TikTok theo khoa (truoc day gop het vao meta_*, tk_*=0)
     _msp=mspd.get(d,{}).get(division,0); _tsp=tspd.get(d,{}).get(division,0)
     _mmsg=mmsd.get(d,{}).get(division,0); _tmsg=tmsd.get(d,{}).get(division,0)
@@ -530,7 +539,7 @@ def dayrec_div(d,division):
         median_bill=float(st.median(_pvb)) if _pvb else 0.0,mean_bill=float(st.mean(_pvb)) if _pvb else 0.0,
         bill_values=_pvb,rev_by_service=rbs,deposit_by_service={k:int(round(v)) for k,v in _depsvc.items()},
         bills_total=int(len(_rbd)),bills_multi=int(len(_xsd)),crosssell_rev=int(round(_xsd['gross'].sum()*VND)),rev_new=int(round(_revnew)),rev_tk=int(round(_revtk)),
-        meta_spend=_msp,tk_spend=_tsp,spend=_msp+_tsp,meta_msg=int(round(_mmsg)),tk_msg=int(round(_tmsg)),msg_by_service=ms,
+        meta_spend=_msp,tk_spend=_tsp,spend=_msp+_tsp,meta_msg=int(round(_mmsg)),tk_msg=int(round(_tmsg)),msg_by_service=ms,spend_by_service=sbs,
         roas=round(revenue/(_msp+_tsp),1) if (_msp+_tsp) else 0)
 series_div={dv:[dayrec_div(d,dv) for d in days] for dv in ['Nội khoa','Ngoại khoa']}
 
