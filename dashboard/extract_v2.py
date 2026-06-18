@@ -637,7 +637,7 @@ def build_llv():
         return None
     if lv is None or not len(lv): return None
     today_ts=pd.Timestamp(date.today())
-    def _empty(): return {'booking':0,'den':0,'rot':0,'noshow':0,'doi':0,'pending':0,'den_new':0}
+    def _empty(): return {'booking':0,'den':0,'rot':0,'noshow':0,'doi':0,'pending':0,'den_new':0,'booking_src':{}}
     def _add(slot,stt,isnew=False):
         slot['booking']+=1
         if stt=='arrived': slot['den']+=1
@@ -646,6 +646,15 @@ def build_llv():
         elif stt=='doi': slot['doi']+=1
         elif stt=='pending': slot['pending']+=1
         if isnew and stt in ('arrived','rot'): slot['den_new']+=1
+    def _book_src(raw):
+        s=str(raw or '').strip().lower()
+        if not s: return 'Khác'
+        if s.startswith('tt') or 'tiktok' in s: return 'TikTok'
+        if s.startswith('ig') or 'instagram' in s: return 'Instagram'
+        if s.startswith('fb') or 'facebook' in s: return 'Facebook'
+        if s.startswith('zl') or 'zalo' in s: return 'Zalo'
+        if s.startswith('oa') or 'cskh' in s: return 'CSKH'
+        return str(raw).strip()
     by_day={}; by_sale={}; tot={'arrived':0,'rot':0,'noshow':0,'doi':0,'pending':0}
     for _,r in lv.iterrows():
         stt=r['status']; hen=r['ngay_hen']
@@ -653,7 +662,11 @@ def build_llv():
         # lịch hẹn ≥ hôm nay mà trạng thái trống (noshow) = CHƯA tới hạn, không tính no-show
         if stt=='noshow' and pd.notna(hen) and hen>=today_ts: stt='pending'
         tot[stt]=tot.get(stt,0)+1
-        if pd.notna(hen): _add(by_day.setdefault(hen.date().isoformat(),_empty()),stt,isnew)
+        if pd.notna(hen):
+            _slot=by_day.setdefault(hen.date().isoformat(),_empty())
+            _add(_slot,stt,isnew)
+            _bs=_book_src(r.get('nguon'))
+            _slot['booking_src'][_bs]=_slot['booking_src'].get(_bs,0)+1
         _add(by_sale.setdefault(r['sale'] or '(trống)',_empty()),stt,isnew)
     for s in by_sale.values():
         base=s['den']+s['noshow']                      # mẫu số: lịch đã tới hạn (bỏ dời & pending)
@@ -671,10 +684,12 @@ def _inject_funnel(series, series_div, llv):
         x = lday.get(rec['date'], {})
         rec['booking']=x.get('booking',0); rec['den']=x.get('den',0)
         rec['noshow']=x.get('noshow',0);   rec['rot']=x.get('rot',0); rec['doi']=x.get('doi',0)
+        rec['booking_src']=x.get('booking_src',{})
     for rec in series_div.get('Nội khoa', []): _set_llv(rec)
     for rec in series:                         _set_llv(rec)        # 'all' = LLV (Nội)
     for rec in series_div.get('Ngoại khoa', []):                    # Ngoại: 0 (đọc snapshot bkphau)
         for k in ('booking','den','noshow','rot','doi'): rec[k]=0
+        rec['booking_src']={}
 _inject_funnel(series, series_div, llv)
 
 # inject den_new (den kham khach moi) -> pheu Noi chip4 new->new
