@@ -867,8 +867,8 @@ function gatesInner(arr){
       rows:row('Tư vấn rớt (chăm lại)',ntvr)+row('Tỉ lệ lead \u2192 khám',bkTotal?pct(nkham,bkTotal).toFixed(0)+'%':'\u2014')};
     const COC={ic:'cust',name:'Cọc',cls:' key',sub:'Đã chốt cọc',big:cocReached?cocReached.toLocaleString('vi-VN'):'\u2014',unit:'khách',
       rows:row('Đang chờ mổ',ncoc)+row('Đã lên bàn mổ',nphau)};
-    const PHAU={ic:'rev',name:'Doanh thu',sub:'Chưa gồm hôm nay',big:nphau?nphau.toLocaleString('vi-VN'):'\u2014',unit:'ca',
-      rows:row('Chưa gồm hôm nay',tyS(rev))+row('ROAS · Chi/DS',`${spend?(rev/spend).toFixed(1):'\u2014'}x · ${rev?pct(spend,rev).toFixed(1):'\u2014'}%`)+row('AOV · trung vị',`${tr(mn)} · ${tr(med)}`),
+    const PHAU={ic:'rev',name:'Doanh thu',sub:'Chưa gồm hôm nay',big:tyS(rev),
+      rows:row('Số ca phẫu',nphau?nphau.toLocaleString('vi-VN')+' ca':'\u2014')+row('ROAS · Chi/DS',`${spend?(rev/spend).toFixed(1):'\u2014'}x · ${rev?pct(spend,rev).toFixed(1):'\u2014'}%`)+row('AOV · trung vị',`${tr(mn)} · ${tr(med)}`),
       by:`DT theo DV: <b>${svc}</b>`};
     cards.push(LEAD,KHAM,COC,PHAU);
     chips.push({v:`${msg?pct(bkTotal,msg).toFixed(1)+'%':'\u2014'}`,l:'tin nhắn \u2192 lead',nl:'Lead',nv:nf(bkTotal),dl:'Tin nhắn',dv:nf(msg),ex:'Lead là snapshot (không theo khung thời gian)'});
