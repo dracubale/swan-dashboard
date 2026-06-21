@@ -629,7 +629,8 @@ bkphau=build_bkphau()
 
 # ===== LLV (booking / vận hành: đến / no-show / rớt theo ngày & theo sale) =====
 # No-show vs DỜI tách theo SĐT tái xuất (KHÔNG dựa nhãn 'dời'): lịch lỡ mà SĐT có
-# lịch ngày SAU = DỜI; không có = NO-SHOW. Khách MỚI = SĐT lần đầu (đối chiếu tháng trước).
+# lịch ngày SAU = DỜI; không có = NO-SHOW. New/TK theo NHÃN loại khách (nhân viên
+# đánh, khớp sheet doanh thu) -> KHÔNG dùng SĐT-lần-đầu cho phần này.
 def _llv_key(ph, ten):
     p = re.sub(r'\D', '', str(ph or ''))
     if len(p) >= 9:
@@ -652,40 +653,20 @@ def build_llv():
         _warn.append('LLV: không đọc được sheet (%s)' % e)
         return None
     if lv is None or not len(lv): return None
-    # tháng trước -> biết SĐT đã xuất hiện chưa (để xác định khách mới)
-    prev_keys = set(); prev_ok = False
-    try:
-        _n = date.today()
-        _pm = 12 if _n.month == 1 else _n.month - 1
-        _py = _n.year - 1 if _n.month == 1 else _n.year
-        _pv = llv_sheet.load_llv_df(month=_pm, year=_py)
-        if _pv is not None and len(_pv):
-            for _, pr in _pv.iterrows():
-                k = _llv_key(pr.get('phone'), pr.get('ten'))
-                if k: prev_keys.add(k)
-            prev_ok = True
-    except Exception:
-        pass
-    if not prev_ok:
-        _warn.append('LLV: không nạp được tab tháng trước -> "khách mới" tạm theo nhãn loại khách')
     today_ts = pd.Timestamp(date.today())
-    recs = []; later_days = {}
+    recs = []; later_days = {}; new_key = {}
     for _, r in lv.iterrows():
         hen = r['ngay_hen']; stt = r['status']
         if stt == 'noshow' and pd.notna(hen) and hen >= today_ts:
             stt = 'pending'
         k = _llv_key(r.get('phone'), r.get('ten'))
-        recs.append(dict(k=k, hen=hen, stt=stt, loai=_llv_loai(r.get('loai_khach')),
+        loai = _llv_loai(r.get('loai_khach'))
+        recs.append(dict(k=k, hen=hen, stt=stt, loai=loai,
                          sale=r.get('sale'), nguon=r.get('nguon')))
         if k and pd.notna(hen):
             later_days.setdefault(k, set()).add(hen.normalize())
-    new_key = {}
-    for rc in recs:
-        k = rc['k']
-        if prev_ok and k:
-            new_key[k] = (k not in prev_keys)
-        else:
-            new_key[k] = new_key.get(k, False) or (rc['loai'] == 'new')
+        if k:                                  # khách MỚI theo NHÃN (1 dòng New -> cả khách New)
+            new_key[k] = new_key.get(k, False) or (loai == 'new')
     def _empty():
         return {'booking':0,'den':0,'rot':0,'noshow':0,'doi':0,'pending':0,
                 'den_new':0,'noshow_new':0,'booking_new':0,'booking_tk':0,'booking_src':{}}
@@ -714,7 +695,7 @@ def build_llv():
     arr_keys = set(); ns_keys = set()
     for rc in recs:
         k, hen, stt = rc['k'], rc['hen'], rc['stt']
-        isnew = new_key.get(k, False)
+        isnew = new_key.get(k, False) if k else (rc['loai'] == 'new')
         if stt in ('noshow','doi') and pd.notna(hen) and k:
             nd = hen.normalize()
             has_later = any(d > nd for d in later_days.get(k, ()))
