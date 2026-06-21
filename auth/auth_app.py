@@ -72,7 +72,7 @@ DATA_SCOPE = {  # division=None => toàn bộ; ads='full' => xem mọi quảng c
 
 # Trang -> các DATA key trang đó cần. Key của trang BỊ CẤM sẽ bị xóa rỗng ở server.
 PAGE_KEYS = {
-    "overview": ["series","series_div","divisions","newtk"],
+    "overview": ["series","series_div","divisions","newtk","llv"],
     "division": ["series_div","divisions"],
     "service":  ["services"],
     "platform": ["platform","platform_div","platform_extra","services"],
