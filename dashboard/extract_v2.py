@@ -540,7 +540,7 @@ def dayrec_div(d,division):
     _newn=int(((_bd.is_rev)&(_bd.ctype=='NEW')).sum()); _tkn=int(((_bd.is_rev)&(_bd.ctype=='TK')).sum())
     _newb=set(bb[bb.ctype=='NEW']['bill']); _tkb=set(bb[bb.ctype=='TK']['bill'])
     _revnew=_ld[_ld.billno.isin(_newb)]['rev'].sum()*VND; _revtk=_ld[_ld.billno.isin(_tkb)]['rev'].sum()*VND
-    return dict(date=d,gross=revenue,operating=revenue,revenue=revenue,deposit=int(round(_depv)),cash_in=revenue+_depv,
+    return dict(date=d,gross=revenue+_depv,operating=revenue,revenue=revenue,deposit=int(round(_depv)),cash_in=revenue+_depv,
         customers=_cust,arrived=_cust,paying=_pay,coc=_coc,coc_new=_cocnew,zero=_zero,
         new=_newn,tk=_tkn,
         median_bill=float(st.median(_pvb)) if _pvb else 0.0,mean_bill=float(st.mean(_pvb)) if _pvb else 0.0,
