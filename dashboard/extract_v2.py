@@ -86,11 +86,18 @@ for bid,grp in df.groupby('billno'):
 B=pd.DataFrame(bills)
 
 # ===== Ghép cọc→thực hiện: cộng giá trị cọc kỳ này vào bill thực hiện; tách ca prepaid khỏi bill 0đ =====
-dep_amount=B[B.is_deposit].set_index('bill')['gross'].to_dict()   # bill cọc -> giá trị cọc (nghìn)
+def _bk(x):                                  # chuan hoa khoa bill (BILLL str vs CỌC float)
+    try:
+        if pd.isna(x): return None
+        return str(int(float(x)))
+    except (ValueError, TypeError):
+        s = str(x).strip(); return s or None
+dep_amount={_bk(k):v for k,v in B[B.is_deposit].set_index('bill')['gross'].to_dict().items()}   # bill cọc -> giá trị cọc (nghìn)
 _realized=set()
 def _coc_add(r):
-    if r['coc_link'] is not None and r['coc_link'] in dep_amount:
-        _realized.add(r['coc_link']); return float(dep_amount[r['coc_link']])
+    k=_bk(r['coc_link'])
+    if k is not None and k in dep_amount:
+        _realized.add(k); return float(dep_amount[k])
     return 0.0
 B['coc_add']=B.apply(_coc_add,axis=1)
 B['gross']=B['gross']+B['coc_add']                                # bill thực hiện gánh full giá trị (gồm cọc kỳ này)
@@ -101,7 +108,7 @@ B.loc[B['coc_done'],'is_zero']=False
 m_cocrev=B['coc_link'].notna() & (~B['is_deposit']) & (B['gross']>0) & B['has_cust']
 B.loc[m_cocrev,'is_rev']=True; B.loc[m_cocrev,'is_zero']=False
 # bill cọc đã được thực hiện trong kỳ → chuyển khỏi pipeline (giá trị đã sang bill thực hiện)
-B.loc[B['bill'].isin(_realized),['is_deposit','is_rev','is_zero']]=False
+B.loc[B['bill'].apply(_bk).isin(_realized),['is_deposit','is_rev','is_zero']]=False
 # division mỗi bill: ngoại nếu sale phẫu hoặc dịch vụ chính thuộc ngoại; còn lại theo dịch vụ
 def _billdiv(r):
     if r['is_phau']: return 'Ngoại khoa'
