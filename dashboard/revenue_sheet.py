@@ -26,9 +26,14 @@ def _svc():
 def _find_tab(svc):
     meta = svc.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
     titles = [s["properties"]["title"] for s in meta["sheets"]]
+    # [findtab2] khop khong phan biet hoa/thuong + bo dau cach: 'BCNGAY - T07' cung nhan
     mm = datetime.datetime.now().strftime("%m")
+    def _norm(x):
+        return "".join(str(x).lower().split())
+    wants = ["t" + mm, "t" + str(int(mm))]   # 'T07' va 'T7'
     for t in titles:
-        if t.startswith("BCng") and ("T" + mm) in t:
+        n = _norm(t)
+        if n.startswith("bcng") and any(w in n for w in wants):
             return t
     raise RuntimeError("Khong tim thay tab BCngay thang hien tai. Tabs: %r" % titles)
 
