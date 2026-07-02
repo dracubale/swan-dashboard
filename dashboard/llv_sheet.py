@@ -36,10 +36,46 @@ CANON = {
     "ha": "Hà",
     "vy": "Vy",   # sale cu da nghi
 }
-# vi tri cot (0-based)
-C_SALE, C_NGUON, C_LOAI, C_NGAYCHOT = 0, 1, 2, 3
-C_TEN, C_SDT, C_SL, C_DV = 4, 5, 6, 7
-C_NGAYHEN, C_TRANGTHAI, C_NHAC = 12, 14, 15
+# vi tri cot MAC DINH (0-based) - chi dung khi khong do duoc theo ten header
+C_SALE, C_NGUON, C_LOAI, C_NGAYCHOT = 1, 2, 3, 4
+C_TEN, C_SDT, C_SL, C_DV = 5, 6, 7, 8
+C_NGAYHEN, C_TRANGTHAI, C_NHAC = 13, 15, 16
+
+# [llvcols] Do cot theo TEN header -> ben vung khi sheet them/bot/xe dich cot.
+def _hn(h):
+    h = unicodedata.normalize('NFKD', str(h))
+    h = ''.join(c for c in h if not unicodedata.combining(c))
+    return ' '.join(h.lower().split())   # gom moi khoang trang (\n \xa0...) ve 1 space
+def _find_cols(header):
+    H = [_hn(h) for h in header]
+    def find(*keys):
+        for i, h in enumerate(H):
+            if h and any(k in h for k in keys):
+                return i
+        return None
+    c = {}
+    c['nguon']     = find('nguon')
+    c['loai']      = find('loai khach', 'loai')
+    c['ngaychot']  = find('ngay chot', 'chot')
+    c['ten']       = find('ho va ten', 'ho ten', 'ten')
+    c['sdt']       = find('dien thoai', 'so dt', 'sdt')
+    c['sl']        = find('sl khach', 'sl')
+    c['dv']        = find('dich vu')          # 'DICH VU' dau tien
+    c['thoigian']  = find('thoi gian')
+    c['master']    = find('bac si', 'master', 'ktv')
+    c['trangthai'] = find('trang thai', 'tinh trang')
+    c['nhac']      = find('nhac lich', 'nhac')
+    # 2 cot header TRONG -> suy theo hang xom co ten:
+    c['sale']    = (c['nguon'] - 1) if c['nguon'] else C_SALE   # cot ngay truoc NGUON
+    if c['master'] is not None:     c['ngayhen'] = c['master'] - 1   # cot ngay truoc BAC SI-MASTER
+    elif c['thoigian'] is not None: c['ngayhen'] = c['thoigian'] + 1
+    else:                           c['ngayhen'] = C_NGAYHEN
+    # fallback mac dinh neu thieu ten
+    _fb = {'sale':C_SALE,'nguon':C_NGUON,'loai':C_LOAI,'ngaychot':C_NGAYCHOT,'ten':C_TEN,
+           'sdt':C_SDT,'sl':C_SL,'dv':C_DV,'ngayhen':C_NGAYHEN,'trangthai':C_TRANGTHAI,'nhac':C_NHAC}
+    for k, v in _fb.items():
+        if c.get(k) is None: c[k] = v
+    return c
 
 
 def _norm(s):
@@ -149,35 +185,36 @@ def load_llv_df(month=None, year=None):
     if not values:
         raise RuntimeError("Tab LLV rong: %s" % tab)
 
-    width = 16
+    # [llvcols] do cot theo ten header cua CHINH tab nay
+    C = _find_cols(values[0])
+    width = max(len(values[0]), max(C.values()) + 1, 18)
     rows = []
-    cur_day = pd.NaT   # ngay tu dong ngan gan nhat (de ffill khi cot 12 trong)
+    cur_day = pd.NaT   # ngay tu dong gan nhat (ffill khi 1 dong thieu ngay hen)
     for r in values[1:]:               # values[0] = header
         r = list(r) + [""] * (width - len(r))
         r = r[:width]
-        if _is_separator(r):
-            cur_day = _vn_date(r[C_SALE], year)
-            continue
-        ten = (r[C_TEN] or "").strip()
-        sdt = (r[C_SDT] or "").strip()
+        ten = (r[C['ten']] or "").strip()
+        sdt = (r[C['sdt']] or "").strip()
         if not ten and not sdt:
-            continue                    # dong trong
-        hen = _vn_date(r[C_NGAYHEN], year)
+            d = _vn_date(r[C['ngayhen']], year)   # dong ngan/trong: cap nhat ngay neu co
+            if pd.notna(d): cur_day = d
+            continue                              # dong trong
+        hen = _vn_date(r[C['ngayhen']], year)
         if pd.isna(hen):
-            hen = cur_day               # ffill tu dong ngan ngay
+            hen = cur_day               # ffill tu dong gan nhat
         rows.append(dict(
-            sale=map_sale(r[C_SALE]),
-            nguon=(r[C_NGUON] or "").strip() or None,
-            loai_khach=(r[C_LOAI] or "").strip() or None,
-            ngay_chot=_vn_date(r[C_NGAYCHOT], year),
+            sale=map_sale(r[C['sale']]),
+            nguon=(r[C['nguon']] or "").strip() or None,
+            loai_khach=(r[C['loai']] or "").strip() or None,
+            ngay_chot=_vn_date(r[C['ngaychot']], year),
             ten=ten or None,
-            phone=norm_phone(r[C_SDT]),
-            sl=(r[C_SL] or "").strip() or None,
-            dich_vu=(r[C_DV] or "").strip() or None,
+            phone=norm_phone(r[C['sdt']]),
+            sl=(r[C['sl']] or "").strip() or None,
+            dich_vu=(r[C['dv']] or "").strip() or None,
             ngay_hen=hen,
-            trang_thai_raw=(r[C_TRANGTHAI] or "").strip() or None,
-            nhac_lich=(r[C_NHAC] or "").strip() or None,
-            status=parse_status(r[C_TRANGTHAI], r[C_NHAC]),
+            trang_thai_raw=(r[C['trangthai']] or "").strip() or None,
+            nhac_lich=(r[C['nhac']] or "").strip() or None,
+            status=parse_status(r[C['trangthai']], r[C['nhac']]),
         ))
     df = pd.DataFrame(rows)
     return df
